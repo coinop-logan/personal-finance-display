@@ -1,8 +1,12 @@
 # Elm
 frontend/elm-stuff/
+frontend/elm.js
 
-# Server data (created at runtime on Pi)
-server/data.json
+# Rust
+backend/target/
+
+# Server data (created at runtime)
+data.json
 
 # OS
 .DS_Store

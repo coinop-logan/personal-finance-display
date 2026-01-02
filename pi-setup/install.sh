@@ -8,15 +8,15 @@ echo "=== Finance Display Setup ==="
 
 REPO_DIR="$HOME/finance-display"
 
-# Python3 should already be on Pi OS, just verify
-if ! command -v python3 &> /dev/null; then
-    echo "Error: Python3 not found. Installing..."
-    sudo apt-get update && sudo apt-get install -y python3
+# Check that server binary exists
+if [ ! -f "$REPO_DIR/server" ]; then
+    echo "Error: server binary not found at $REPO_DIR/server"
+    echo "The Rust server must be cross-compiled for ARM and included in the repo."
+    exit 1
 fi
 
-echo "Python version: $(python3 --version)"
-
-# Make deploy script executable
+# Make binaries executable
+chmod +x "$REPO_DIR/server"
 chmod +x "$REPO_DIR/pi-setup/deploy.sh"
 
 # Install systemd services

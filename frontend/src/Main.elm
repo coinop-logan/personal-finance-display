@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Api.Types exposing (Entry, NewEntry, entryDecoder, newEntryEncoder)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (Html, div, text, h1, h2, p, input, button, label, span)
@@ -7,7 +8,6 @@ import Html.Attributes exposing (style, type_, value, placeholder, step, id)
 import Html.Events exposing (onInput, onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode
 import Url exposing (Url)
 
 
@@ -29,17 +29,6 @@ main =
 
 type alias Flags =
     { today : String }
-
-type alias Entry =
-    { id : Int
-    , date : String
-    , checking : Float
-    , creditAvailable : Float
-    , hoursWorked : Float
-    , payPerHour : Float
-    , otherIncoming : Float
-    , note : String
-    }
 
 type alias EntryForm =
     { date : String
@@ -185,14 +174,19 @@ update msg model =
         SubmitEntry ->
             let
                 f = model.form
-                checking = String.toFloat f.checking |> Maybe.withDefault 0
-                creditAvailable = String.toFloat f.creditAvailable |> Maybe.withDefault 0
-                hoursWorked = String.toFloat f.hoursWorked |> Maybe.withDefault 0
-                payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
-                otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
+                newEntry : NewEntry
+                newEntry =
+                    { date = f.date
+                    , checking = String.toFloat f.checking |> Maybe.withDefault 0
+                    , creditAvailable = String.toFloat f.creditAvailable |> Maybe.withDefault 0
+                    , hoursWorked = String.toFloat f.hoursWorked |> Maybe.withDefault 0
+                    , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
+                    , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
+                    , note = f.note
+                    }
             in
             ( { model | submitting = True }
-            , submitEntry f.date checking creditAvailable hoursWorked payPerHour otherIncoming f.note
+            , submitEntry newEntry
             )
 
         SubmitResult result ->
@@ -263,11 +257,11 @@ fetchData =
         , expect = Http.expectJson GotData dataDecoder
         }
 
-submitEntry : String -> Float -> Float -> Float -> Float -> Float -> String -> Cmd Msg
-submitEntry date checking creditAvailable hoursWorked payPerHour otherIncoming note =
+submitEntry : NewEntry -> Cmd Msg
+submitEntry newEntry =
     Http.post
         { url = "/api/entry"
-        , body = Http.jsonBody (encodeEntry date checking creditAvailable hoursWorked payPerHour otherIncoming note)
+        , body = Http.jsonBody (newEntryEncoder newEntry)
         , expect = Http.expectWhatever SubmitResult
         }
 
@@ -283,33 +277,9 @@ deleteEntry entryId =
         , tracker = Nothing
         }
 
-encodeEntry : String -> Float -> Float -> Float -> Float -> Float -> String -> Encode.Value
-encodeEntry date checking creditAvailable hoursWorked payPerHour otherIncoming note =
-    Encode.object
-        [ ( "date", Encode.string date )
-        , ( "checking", Encode.float checking )
-        , ( "creditAvailable", Encode.float creditAvailable )
-        , ( "hoursWorked", Encode.float hoursWorked )
-        , ( "payPerHour", Encode.float payPerHour )
-        , ( "otherIncoming", Encode.float otherIncoming )
-        , ( "note", Encode.string note )
-        ]
-
 dataDecoder : Decoder (List Entry)
 dataDecoder =
     Decode.list entryDecoder
-
-entryDecoder : Decoder Entry
-entryDecoder =
-    Decode.map8 Entry
-        (Decode.field "id" Decode.int)
-        (Decode.field "date" Decode.string)
-        (Decode.field "checking" Decode.float)
-        (Decode.field "creditAvailable" Decode.float)
-        (Decode.field "hoursWorked" Decode.float)
-        (Decode.field "payPerHour" Decode.float)
-        (Decode.field "otherIncoming" Decode.float)
-        (Decode.field "note" Decode.string)
 
 
 -- VIEW

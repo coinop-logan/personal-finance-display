@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/finance-display/server
-ExecStart=/usr/bin/python3 server.py
+WorkingDirectory=/home/pi/finance-display
+ExecStart=/home/pi/finance-display/server
 Restart=on-failure
 RestartSec=5
 Environment=PORT=3000
