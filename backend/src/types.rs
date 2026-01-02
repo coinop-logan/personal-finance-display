@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 pub struct Entry {
     pub id: i32,
     pub date: String,
-    pub timestamp: i64,
     pub checking: f64,
     pub credit_available: f64,
     pub hours_worked: f64,
     pub pay_per_hour: f64,
     pub other_incoming: f64,
+    pub personal_debt: f64,
     pub note: String,
 }
 
@@ -26,6 +26,7 @@ pub struct NewEntry {
     pub hours_worked: f64,
     pub pay_per_hour: f64,
     pub other_incoming: f64,
+    pub personal_debt: f64,
     pub note: String,
 }
 

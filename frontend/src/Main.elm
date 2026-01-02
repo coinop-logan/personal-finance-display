@@ -37,6 +37,7 @@ type alias EntryForm =
     , hoursWorked : String
     , payPerHour : String
     , otherIncoming : String
+    , personalDebt : String
     , note : String
     }
 
@@ -63,6 +64,7 @@ emptyForm todayDays =
     , hoursWorked = ""
     , payPerHour = ""
     , otherIncoming = ""
+    , personalDebt = ""
     , note = ""
     }
 
@@ -75,6 +77,7 @@ formFromLastEntry todayDays entry =
     , hoursWorked = ""  -- Don't carry over hours, default to empty (0)
     , payPerHour = String.fromFloat entry.payPerHour
     , otherIncoming = String.fromFloat entry.otherIncoming
+    , personalDebt = String.fromFloat entry.personalDebt
     , note = ""
     }
 
@@ -152,6 +155,7 @@ type FormField
     | HoursWorked
     | PayPerHour
     | OtherIncoming
+    | PersonalDebt
     | Note
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -198,6 +202,7 @@ update msg model =
                         HoursWorked -> { f | hoursWorked = val }
                         PayPerHour -> { f | payPerHour = val }
                         OtherIncoming -> { f | otherIncoming = val }
+                        PersonalDebt -> { f | personalDebt = val }
                         Note -> { f | note = val }
             in
             ( { model | form = newForm }, Cmd.none )
@@ -221,6 +226,7 @@ update msg model =
                             , hoursWorked = String.toFloat f.hoursWorked |> Maybe.withDefault 0
                             , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
                             , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
+                            , personalDebt = String.toFloat f.personalDebt |> Maybe.withDefault 0
                             , note = f.note
                             }
                         )
@@ -513,9 +519,10 @@ viewEntryForm model =
             [ viewDatePicker model.form.dateDays
             , viewCompactField "Checking" "number" model.form.checking (UpdateForm Checking) "90px"
             , viewCompactField "Credit Avail" "number" model.form.creditAvailable (UpdateForm CreditAvailable) "90px"
-            , viewCompactField "Hours" "number" model.form.hoursWorked (UpdateForm HoursWorked) "70px"
+            , viewCompactField "Hours Today" "number" model.form.hoursWorked (UpdateForm HoursWorked) "80px"
             , viewCompactField "$/hr" "number" model.form.payPerHour (UpdateForm PayPerHour) "70px"
             , viewCompactField "Other $" "number" model.form.otherIncoming (UpdateForm OtherIncoming) "80px"
+            , viewCompactField "Pers. Debt" "number" model.form.personalDebt (UpdateForm PersonalDebt) "80px"
             , viewCompactField "Note" "text" model.form.note (UpdateForm Note) "120px"
             , button
                 [ onClick SubmitEntry

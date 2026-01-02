@@ -7,7 +7,6 @@ use axum::{
     Json, Router,
 };
 use std::sync::{Arc, RwLock};
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fs, path::PathBuf};
 use tower_http::services::{ServeDir, ServeFile};
 use types::{ApiResponse, Entry, NewEntry};
@@ -55,28 +54,35 @@ async fn create_entry(
 ) -> (StatusCode, Json<ApiResponse>) {
     let mut data = state.write().unwrap();
 
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
+    // Check if entry for this date already exists - if so, overwrite it
+    if let Some(existing) = data.entries.iter_mut().find(|e| e.date == new_entry.date) {
+        existing.checking = new_entry.checking;
+        existing.credit_available = new_entry.credit_available;
+        existing.hours_worked = new_entry.hours_worked;
+        existing.pay_per_hour = new_entry.pay_per_hour;
+        existing.other_incoming = new_entry.other_incoming;
+        existing.personal_debt = new_entry.personal_debt;
+        existing.note = new_entry.note;
+    } else {
+        // Create new entry
+        let entry = Entry {
+            id: data.next_id,
+            date: new_entry.date,
+            checking: new_entry.checking,
+            credit_available: new_entry.credit_available,
+            hours_worked: new_entry.hours_worked,
+            pay_per_hour: new_entry.pay_per_hour,
+            other_incoming: new_entry.other_incoming,
+            personal_debt: new_entry.personal_debt,
+            note: new_entry.note,
+        };
 
-    let entry = Entry {
-        id: data.next_id,
-        date: new_entry.date,
-        timestamp,
-        checking: new_entry.checking,
-        credit_available: new_entry.credit_available,
-        hours_worked: new_entry.hours_worked,
-        pay_per_hour: new_entry.pay_per_hour,
-        other_incoming: new_entry.other_incoming,
-        note: new_entry.note,
-    };
+        data.next_id += 1;
+        data.entries.push(entry);
+        data.entries.sort_by(|a, b| a.date.cmp(&b.date));
+    }
 
-    data.next_id += 1;
-    data.entries.push(entry);
-    data.entries.sort_by(|a, b| a.date.cmp(&b.date));
     data.save();
-
     (StatusCode::OK, Json(ApiResponse { ok: true }))
 }
 
