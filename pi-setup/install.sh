@@ -16,28 +16,27 @@ fi
 
 echo "Python version: $(python3 --version)"
 
-# Install systemd service
-echo "Installing systemd service..."
-sudo cp "$REPO_DIR/pi-setup/finance-display.service" /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable finance-display
-
-# Set up cron for auto-deploy (every 5 minutes)
-echo "Setting up auto-deploy cron..."
-CRON_CMD="*/5 * * * * $REPO_DIR/pi-setup/deploy.sh >> $HOME/finance-deploy.log 2>&1"
-(crontab -l 2>/dev/null | grep -v "deploy.sh"; echo "$CRON_CMD") | crontab -
-
 # Make deploy script executable
 chmod +x "$REPO_DIR/pi-setup/deploy.sh"
 
-# Start the service
-echo "Starting service..."
+# Install systemd services
+echo "Installing systemd services..."
+sudo cp "$REPO_DIR/pi-setup/finance-display.service" /etc/systemd/system/
+sudo cp "$REPO_DIR/pi-setup/finance-deploy-watcher.service" /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable finance-display
+sudo systemctl enable finance-deploy-watcher
+
+# Start services
+echo "Starting services..."
 sudo systemctl start finance-display
+sudo systemctl start finance-deploy-watcher
 
 echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "Server running at http://localhost:3000"
+echo "Deploy watcher checking for updates every 2 seconds"
 echo ""
 echo "To view graph on this Pi:"
 echo "  chromium --kiosk http://localhost:3000"

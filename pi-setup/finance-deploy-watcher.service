@@ -1,0 +1,14 @@
+[Unit]
+Description=Finance Display Deploy Watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/home/pi/finance-display/pi-setup/deploy.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

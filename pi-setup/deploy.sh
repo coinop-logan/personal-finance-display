@@ -1,25 +1,32 @@
 #!/bin/bash
-# Auto-deploy script for finance-display
-# This script is run by cron on the Pi to check for updates
+# Auto-deploy watcher for finance-display
+# Checks for updates every 2 seconds
 
 REPO_DIR="$HOME/finance-display"
+INTERVAL=2
 
 cd "$REPO_DIR" || exit 1
 
-# Fetch latest from origin
-git fetch origin main --quiet 2>/dev/null
+echo "Watching for updates every ${INTERVAL}s..."
 
-# Check if there are new commits
-LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/main 2>/dev/null)
+while true; do
+    # Fetch latest from origin
+    git fetch origin master --quiet 2>/dev/null
 
-if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - New changes detected, updating..."
+    # Check if there are new commits
+    LOCAL=$(git rev-parse HEAD 2>/dev/null)
+    REMOTE=$(git rev-parse origin/master 2>/dev/null)
 
-    git pull origin main --quiet
+    if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - New changes detected, updating..."
 
-    # Restart the service
-    sudo systemctl restart finance-display
+        git pull origin master --quiet
 
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - Update complete, service restarted"
-fi
+        # Restart the server
+        sudo systemctl restart finance-display
+
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - Update complete, service restarted"
+    fi
+
+    sleep $INTERVAL
+done
