@@ -8,7 +8,7 @@ use axum::{
 };
 use std::sync::{Arc, RwLock};
 use std::{fs, path::PathBuf};
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 use types::{ApiResponse, Entry, NewEntry};
 
 type AppState = Arc<RwLock<AppData>>;
@@ -108,10 +108,14 @@ async fn main() {
         .route("/entry", post(create_entry))
         .route("/entry/{id}", delete(delete_entry));
 
-    // Main app: API + static files
+    // Main app: API + static files (with SPA fallback to index.html)
+    let serve_dir = ServeDir::new("dist")
+        .append_index_html_on_directories(true)
+        .not_found_service(ServeFile::new("dist/index.html"));
+
     let app = Router::new()
         .nest("/api", api_routes)
-        .fallback_service(ServeDir::new("dist").append_index_html_on_directories(true))
+        .fallback_service(serve_dir)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
