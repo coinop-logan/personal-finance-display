@@ -1,0 +1,14 @@
+# Elm
+frontend/elm-stuff/
+
+# Server data (created at runtime)
+server/data.json
+
+# Build artifacts we don't need in repo
+# (dist/ IS tracked since we build here and deploy to Pi)
+
+# Rust scraper (deprecated, keeping source but not build artifacts)
+scraper/target/
+
+# OS
+.DS_Store

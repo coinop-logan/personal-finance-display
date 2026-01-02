@@ -1,0 +1,10 @@
+[package]
+name = "scraper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chromiumoxide = { version = "0.7", features = ["tokio-runtime"] }
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+anyhow = "1.0"
