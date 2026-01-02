@@ -8,12 +8,19 @@ No external dependencies - uses only Python standard library.
 import http.server
 import json
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
 PORT = int(os.environ.get('PORT', 3000))
 DATA_FILE = Path(__file__).parent / 'data.json'
 DIST_DIR = Path(__file__).parent.parent / 'dist'
+
+# Track next ID for entries
+def get_next_id(entries):
+    if not entries:
+        return 1
+    return max(e.get('id', 0) for e in entries) + 1
 
 
 def load_data():
@@ -64,17 +71,23 @@ class FinanceHandler(http.server.SimpleHTTPRequestHandler):
                 entry = json.loads(body.decode('utf-8'))
 
                 # Validate entry
-                if not entry.get('date') or entry.get('amount') is None:
-                    self.send_error(400, 'Missing date or amount')
+                if not entry.get('date'):
+                    self.send_error(400, 'Missing date')
                     return
 
-                # Add to data
+                # Add to data with new structure
                 entries = load_data()
-                entries.append({
+                new_entry = {
+                    'id': get_next_id(entries),
                     'date': entry['date'],
-                    'amount': float(entry['amount']),
-                    'label': entry.get('label', '')
-                })
+                    'checking': float(entry.get('checking', 0)),
+                    'creditAvailable': float(entry.get('creditAvailable', 0)),
+                    'hoursWorked': float(entry.get('hoursWorked', 0)),
+                    'payPerHour': float(entry.get('payPerHour', 0)),
+                    'otherIncoming': float(entry.get('otherIncoming', 0)),
+                    'note': entry.get('note', '')
+                }
+                entries.append(new_entry)
 
                 # Sort by date
                 entries.sort(key=lambda x: x['date'])
@@ -88,6 +101,31 @@ class FinanceHandler(http.server.SimpleHTTPRequestHandler):
 
             except (json.JSONDecodeError, ValueError) as e:
                 self.send_error(400, f'Invalid JSON: {e}')
+        else:
+            self.send_error(404, 'Not found')
+
+    def do_DELETE(self):
+        parsed = urlparse(self.path)
+
+        # Match /api/entry/{id}
+        match = re.match(r'^/api/entry/(\d+)$', parsed.path)
+        if match:
+            entry_id = int(match.group(1))
+            entries = load_data()
+
+            # Filter out the entry with matching id
+            new_entries = [e for e in entries if e.get('id') != entry_id]
+
+            if len(new_entries) == len(entries):
+                self.send_error(404, 'Entry not found')
+                return
+
+            save_data(new_entries)
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"ok": true}')
         else:
             self.send_error(404, 'Not found')
 
@@ -107,8 +145,6 @@ class FinanceHandler(http.server.SimpleHTTPRequestHandler):
 def main():
     server = http.server.HTTPServer(('0.0.0.0', PORT), FinanceHandler)
     print(f'Finance Display Server running at http://localhost:{PORT}')
-    print(f'Data entry: http://localhost:{PORT}/entry')
-    print(f'Graph view: http://localhost:{PORT}/')
     print(f'Data file: {DATA_FILE}')
     try:
         server.serve_forever()
