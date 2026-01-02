@@ -6530,7 +6530,7 @@ var $author$project$Main$formFromLastEntry = F2(
 			K: $elm$core$String$fromFloat(entry.K),
 			L: $elm$core$String$fromFloat(entry.L),
 			t: todayDays,
-			N: $elm$core$String$fromFloat(entry.N),
+			N: '',
 			O: '',
 			P: $elm$core$String$fromFloat(entry.P),
 			R: $elm$core$String$fromFloat(entry.R)
@@ -7086,28 +7086,10 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 					[
 						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
 						A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
-						A2($elm$html$Html$Attributes$style, 'gap', '5px')
+						A2($elm$html$Html$Attributes$style, 'gap', '2px')
 					]),
 				_List_fromArray(
 					[
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
-								$elm$html$Html$Events$onClick(
-								$author$project$Main$AdjustDate(-1)),
-								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
-								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
-								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
-								A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
-								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
-								A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
-								A2($elm$html$Html$Attributes$style, 'cursor', 'pointer')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('-')
-							])),
 						A2(
 						$elm$html$Html$span,
 						_List_fromArray(
@@ -7115,7 +7097,7 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
 								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
 								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
-								A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '4px 0 0 4px'),
 								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
 								A2($elm$html$Html$Attributes$style, 'font-size', '0.9em'),
 								A2($elm$html$Html$Attributes$style, 'min-width', '100px'),
@@ -7126,22 +7108,53 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 								$elm$html$Html$text(dateStr)
 							])),
 						A2(
-						$elm$html$Html$button,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick(
-								$author$project$Main$AdjustDate(1)),
-								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
-								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
-								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
-								A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
-								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
-								A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
-								A2($elm$html$Html$Attributes$style, 'cursor', 'pointer')
+								A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+								A2($elm$html$Html$Attributes$style, 'flex-direction', 'column')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('+')
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(
+										$author$project$Main$AdjustDate(1)),
+										A2($elm$html$Html$Attributes$style, 'padding', '2px 8px'),
+										A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
+										A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
+										A2($elm$html$Html$Attributes$style, 'border-radius', '0 4px 0 0'),
+										A2($elm$html$Html$Attributes$style, 'color', '#eee'),
+										A2($elm$html$Html$Attributes$style, 'font-size', '0.7em'),
+										A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
+										A2($elm$html$Html$Attributes$style, 'line-height', '1')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('▲')
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick(
+										$author$project$Main$AdjustDate(-1)),
+										A2($elm$html$Html$Attributes$style, 'padding', '2px 8px'),
+										A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
+										A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
+										A2($elm$html$Html$Attributes$style, 'border-top', 'none'),
+										A2($elm$html$Html$Attributes$style, 'border-radius', '0 0 4px 0'),
+										A2($elm$html$Html$Attributes$style, 'color', '#eee'),
+										A2($elm$html$Html$Attributes$style, 'font-size', '0.7em'),
+										A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
+										A2($elm$html$Html$Attributes$style, 'line-height', '1')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('▼')
+									]))
 							]))
 					]))
 			]));

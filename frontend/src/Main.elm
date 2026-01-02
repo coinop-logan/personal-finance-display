@@ -72,7 +72,7 @@ formFromLastEntry todayDays entry =
     { dateDays = todayDays
     , checking = String.fromFloat entry.checking
     , creditAvailable = String.fromFloat entry.creditAvailable
-    , hoursWorked = String.fromFloat entry.hoursWorked
+    , hoursWorked = ""  -- Don't carry over hours, default to empty (0)
     , payPerHour = String.fromFloat entry.payPerHour
     , otherIncoming = String.fromFloat entry.otherIncoming
     , note = ""
@@ -545,40 +545,45 @@ viewDatePicker dateDays =
             , style "margin-bottom" "3px"
             ]
             [ text "Date" ]
-        , div [ style "display" "flex", style "align-items" "center", style "gap" "5px" ]
-            [ button
-                [ onClick (AdjustDate -1)
-                , style "padding" "8px 12px"
-                , style "background" "#1a1a2e"
-                , style "border" "1px solid #333"
-                , style "border-radius" "4px"
-                , style "color" "#eee"
-                , style "font-size" "1em"
-                , style "cursor" "pointer"
-                ]
-                [ text "-" ]
-            , span
+        , div [ style "display" "flex", style "align-items" "center", style "gap" "2px" ]
+            [ span
                 [ style "padding" "8px 12px"
                 , style "background" "#1a1a2e"
                 , style "border" "1px solid #333"
-                , style "border-radius" "4px"
+                , style "border-radius" "4px 0 0 4px"
                 , style "color" "#eee"
                 , style "font-size" "0.9em"
                 , style "min-width" "100px"
                 , style "text-align" "center"
                 ]
                 [ text dateStr ]
-            , button
-                [ onClick (AdjustDate 1)
-                , style "padding" "8px 12px"
-                , style "background" "#1a1a2e"
-                , style "border" "1px solid #333"
-                , style "border-radius" "4px"
-                , style "color" "#eee"
-                , style "font-size" "1em"
-                , style "cursor" "pointer"
+            , div [ style "display" "flex", style "flex-direction" "column" ]
+                [ button
+                    [ onClick (AdjustDate 1)
+                    , style "padding" "2px 8px"
+                    , style "background" "#1a1a2e"
+                    , style "border" "1px solid #333"
+                    , style "border-radius" "0 4px 0 0"
+                    , style "color" "#eee"
+                    , style "font-size" "0.7em"
+                    , style "cursor" "pointer"
+                    , style "line-height" "1"
+                    ]
+                    [ text "▲" ]
+                , button
+                    [ onClick (AdjustDate -1)
+                    , style "padding" "2px 8px"
+                    , style "background" "#1a1a2e"
+                    , style "border" "1px solid #333"
+                    , style "border-top" "none"
+                    , style "border-radius" "0 0 4px 0"
+                    , style "color" "#eee"
+                    , style "font-size" "0.7em"
+                    , style "cursor" "pointer"
+                    , style "line-height" "1"
+                    ]
+                    [ text "▼" ]
                 ]
-                [ text "+" ]
             ]
         ]
 
