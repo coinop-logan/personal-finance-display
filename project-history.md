@@ -6,68 +6,60 @@
 
 **Date:** 2025-12-13
 
-### Project Created
+### Summary
 
-New project to display personal finance data on a dedicated Raspberry Pi screen in the bedroom.
+Project created. Goal: dedicated Raspberry Pi screen in bedroom displaying personal finance graph.
 
-### Decisions Made
+**Key decisions:**
+- Raspberry Pi 4 with full Pi OS, Chromium in kiosk mode
+- Elm for frontend, custom-built graph
+- Explored bank scraping as data source (Rust prototype created)
 
-**Hardware & Display:**
-- Raspberry Pi 4 (micro HDMI adapter acquired)
-- Full Raspberry Pi OS with desktop (simplicity over minimalism)
-- Chromium in `--kiosk` mode for true full-screen display (no title bars)
-- No boot automation needed - Pi stays on, start kiosk manually once
+**Explored but later abandoned:**
+- Bank scraping approach (too fragile, can't capture non-bank data like daily pay)
+- Cloud-based architecture with GitHub Actions
+- Rust scraper prototype
 
-**Web Application:**
-- Elm-based (Elm vs Lamdera still TBD - depends on data source)
-- Custom-built graph, not using a graphing library
-- Rendering method TBD (possibly SVG, possibly other)
-- Graph content: Manager has clear vision, will specify when basics are settled
+---
 
-**Data Source Architecture:**
-- Cloud-based scraping approach chosen over local Pi scraping
-- GitHub Actions (free tier) runs scraper on hourly schedule
-- Scraper outputs to publicly accessible JSON file
-- Elm app fetches JSON via simple HTTP GET
-- Public data is acceptable (no auth needed for fetching)
+## Session 1.5
 
-### Research Completed
+**Date:** Between sessions 1 and 2
 
-**Pi Kiosk Options:**
-- Explored minimal X, Cage/Wayland, full desktop
-- Chose full Pi OS for simplicity of setup
-- Confirmed `chromium --kiosk <URL>` provides true full-screen
+Pi was set up and kiosk mode confirmed working.
 
-**Pi 4 Hardware:**
-- Uses micro HDMI (Type D), not standard HDMI
-- Need "micro HDMI to HDMI" adapter
+---
 
-**Bank Scraping Tools (Rust):**
-- `chromiumoxide` - async, tokio-based, actively maintained
-- `headless_chrome` - Puppeteer equivalent for Rust
-- Playwright/Puppeteer cannot run from browser context (Node.js only)
+## Session 2
 
-**Scraping Challenges Identified:**
-- Security questions: Solvable with stored Q&A pairs
-- 2FA: TOTP doable if we have secret; SMS/email harder
-- Bot detection: Banks may block; stealth plugins help
-- Maintenance: Script breaks when bank updates UI
+**Date:** 2026-01-02
+
+### Architecture Pivot
+
+Realized bank scraping wouldn't capture manually-tracked values (like "I worked today, earned $X"). Pivoted to fully self-contained local system:
+
+**New architecture:**
+- Pi hosts everything - no cloud services
+- Python backend (stdlib only, no dependencies) serves API and static files
+- Elm frontend with graph display (`/`) and data entry form (`/entry`)
+- Data stored in local JSON file on Pi
+- Entry from any device on local network via `http://<pi-ip>:3000/entry`
+
+**Deployment system:**
+- Code built on dev machine, committed to GitHub
+- Pi runs deploy watcher (systemd service) checking every 2 seconds
+- Frontend checks for code changes every 500ms, auto-reloads when updated
 
 ### Files Created
 
-- `brainstorming.md` - Initial ideas and research notes
-- `project-plan.md` - Decisions, open questions, and project phases
-- `scraper/` - Rust project with chromiumoxide, compiles successfully
+- `frontend/` - Elm app with graph and entry form
+- `server/server.py` - Python HTTP server with JSON storage
+- `dist/` - Built frontend (committed for Pi to serve directly)
+- `pi-setup/` - Install script, systemd services, deploy watcher
 
-### Current State
+### Cleanup
 
-- Rust scraper prototype compiles but not yet tested against actual bank
-- Awaiting bank URL to test scraping feasibility
-- Pi OS flashing to SD card (in progress at session end)
-
-### Next Steps
-
-1. Test Rust scraper against actual bank login page
-2. Set up GitHub Actions workflow for scheduled scraping
-3. Create Elm app with basic graph and hardcoded test data
-4. Connect Pi to display and test kiosk mode
+Removed deprecated files from session 1:
+- `scraper/` - Rust bank scraping prototype
+- `brainstorming.md` - Early exploration notes
+- `project-plan.md` - Outdated planning doc
