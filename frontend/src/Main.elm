@@ -51,10 +51,15 @@ type alias EntryForm =
     , note : String
     }
 
+type Page
+    = GraphPage
+    | EntryPage
+
 type alias Model =
     { entries : List Entry
     , error : Maybe String
     , loading : Bool
+    , page : Page
     , form : EntryForm
     , submitting : Bool
     , key : Nav.Key
@@ -72,11 +77,19 @@ emptyForm today lastPayPerHour =
     , note = ""
     }
 
+urlToPage : Url -> Page
+urlToPage url =
+    if String.contains "/entry" url.path then
+        EntryPage
+    else
+        GraphPage
+
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     ( { entries = []
       , error = Nothing
       , loading = True
+      , page = urlToPage url
       , form = emptyForm flags.today ""
       , submitting = False
       , key = key
@@ -143,8 +156,8 @@ update msg model =
                     , Cmd.none
                     )
 
-        UrlChanged _ ->
-            ( model, Cmd.none )
+        UrlChanged url ->
+            ( { model | page = urlToPage url }, Cmd.none )
 
         LinkClicked request ->
             case request of
@@ -317,20 +330,42 @@ viewBody model =
         , style "font-family" "system-ui, -apple-system, sans-serif"
         , style "box-sizing" "border-box"
         ]
+        [ case model.page of
+            GraphPage ->
+                viewGraphPage model
+
+            EntryPage ->
+                viewEntryPage model
+        ]
+
+viewGraphPage : Model -> Html Msg
+viewGraphPage model =
+    div []
         [ h1
             [ style "margin" "0 0 20px 0"
             , style "font-weight" "300"
             , style "font-size" "1.5em"
             ]
             [ text "Finance Tracker" ]
+        , viewGraphPlaceholder
+        , viewMessageForMom
+        ]
+
+viewEntryPage : Model -> Html Msg
+viewEntryPage model =
+    div []
+        [ h1
+            [ style "margin" "0 0 20px 0"
+            , style "font-weight" "300"
+            , style "font-size" "1.5em"
+            ]
+            [ text "Data Entry" ]
         , if model.loading then
             p [] [ text "Loading..." ]
           else
             div []
                 [ viewEntryForm model
                 , viewRecentEntries model.entries
-                , viewGraphPlaceholder
-                , viewMessageForMom
                 ]
         , case model.error of
             Just err ->
