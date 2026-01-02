@@ -111,7 +111,7 @@ async fn main() {
     // Main app: API + static files
     let app = Router::new()
         .nest("/api", api_routes)
-        .fallback_service(ServeDir::new("../dist").append_index_html_on_directories(true))
+        .fallback_service(ServeDir::new("dist").append_index_html_on_directories(true))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
