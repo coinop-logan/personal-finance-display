@@ -7297,7 +7297,7 @@ var $author$project$Main$viewBar = F3(
 					$elm$html$Html$Attributes$style,
 					'height',
 					$elm$core$String$fromFloat(heightPercent) + '%'),
-					A2($elm$html$Html$Attributes$style, 'background', 'linear-gradient(to top, #f857a6, #ff5858)'),
+					A2($elm$html$Html$Attributes$style, 'background', 'linear-gradient(to top, #4facfe, #00f2fe)'),
 					A2($elm$html$Html$Attributes$style, 'border-radius', '4px 4px 0 0'),
 					A2($elm$html$Html$Attributes$style, 'position', 'relative'),
 					A2($elm$html$Html$Attributes$style, 'cursor', 'default')
