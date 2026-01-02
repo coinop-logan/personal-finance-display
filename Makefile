@@ -35,12 +35,12 @@ build-backend:
 	cd backend && cargo build --release --bin server
 	@echo "Backend built: backend/target/release/server"
 
-# Build for Raspberry Pi (ARM) and copy to repo root
+# Build for Raspberry Pi 4 (64-bit ARM) and copy to repo root
 build-pi:
-	@echo "Cross-compiling for Raspberry Pi..."
-	cd backend && PATH="$(HOME)/.cargo/bin:$(PATH)" cross build --release --bin server --target armv7-unknown-linux-gnueabihf
-	cp backend/target/armv7-unknown-linux-gnueabihf/release/server server
-	@echo "ARM binary copied to: server"
+	@echo "Cross-compiling for Raspberry Pi 4..."
+	cd backend && PATH="$(HOME)/.cargo/bin:$(PATH)" cross build --release --bin server --target aarch64-unknown-linux-gnu
+	cp backend/target/aarch64-unknown-linux-gnu/release/server server
+	@echo "ARM64 binary copied to: server"
 
 # Full Pi deployment: build everything for Pi
 deploy: generate-elm build-elm build-pi
