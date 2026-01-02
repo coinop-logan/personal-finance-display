@@ -451,7 +451,7 @@ viewBar minAmount range entry =
         , style "min-width" "20px"
         , style "max-width" "60px"
         , style "height" (String.fromFloat heightPercent ++ "%")
-        , style "background" "linear-gradient(to top, #4facfe, #00f2fe)"
+        , style "background" "linear-gradient(to top, #f857a6, #ff5858)"
         , style "border-radius" "4px 4px 0 0"
         , style "position" "relative"
         , style "cursor" "default"
