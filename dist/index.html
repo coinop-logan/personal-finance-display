@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="10">
     <title>Finance Tracker</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -15,6 +14,26 @@
     <script src="elm.js"></script>
     <script>
         Elm.Main.init({ node: document.getElementById('app') });
+
+        // Check for code updates every 2 seconds, reload only if changed
+        (function() {
+            var currentHash = null;
+
+            async function checkForUpdates() {
+                try {
+                    var resp = await fetch('/elm.js', { method: 'HEAD' });
+                    var newHash = resp.headers.get('Last-Modified') || resp.headers.get('ETag');
+
+                    if (currentHash === null) {
+                        currentHash = newHash;
+                    } else if (newHash !== currentHash) {
+                        location.reload();
+                    }
+                } catch (e) {}
+            }
+
+            setInterval(checkForUpdates, 2000);
+        })();
     </script>
 </body>
 </html>
