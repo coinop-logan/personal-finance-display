@@ -63,3 +63,37 @@ Removed deprecated files from session 1:
 - `scraper/` - Rust bank scraping prototype
 - `brainstorming.md` - Early exploration notes
 - `project-plan.md` - Outdated planning doc
+
+---
+
+## Session 3
+
+**Date:** 2026-01-02
+
+### Rust Backend Migration
+
+Replaced Python backend with Rust for type safety between frontend and backend.
+
+**New stack:**
+- Rust/Axum backend with elm_rs for generating Elm types from Rust structs
+- Makefile enforcing correct build order (types → frontend → backend)
+- Cross-compilation for Pi 4 (aarch64) using `cross` tool
+- CLAUDE.md with instructions for future robots
+
+**Key files:**
+- `backend/src/types.rs` - Single source of truth for shared types
+- `backend/src/main.rs` - Axum server
+- `backend/src/generate_elm.rs` - Type generator binary
+- `frontend/src/Api/Types.elm` - Auto-generated Elm types (DO NOT EDIT)
+- `server` - Cross-compiled ARM64 binary (committed to repo)
+
+**Deployment workflow:**
+```bash
+make deploy    # Generates types, builds Elm, cross-compiles ARM binary
+git add -A && git commit -m "..." && git push
+# Pi auto-pulls and restarts within 2 seconds
+```
+
+### Cleanup
+
+- Removed `server/server.py` (replaced by Rust)
