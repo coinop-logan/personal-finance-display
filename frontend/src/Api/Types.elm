@@ -13,6 +13,7 @@ import Json.Encode as Encode
 type alias Entry =
     { id : Int
     , date : String
+    , timestamp : Int
     , checking : Float
     , creditAvailable : Float
     , hoursWorked : Float
@@ -27,6 +28,7 @@ entryDecoder =
     Decode.succeed Entry
         |> Decode.andThen (\x -> Decode.map x (Decode.field "id" (Decode.int)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "date" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "timestamp" (Decode.int)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "checking" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "creditAvailable" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "hoursWorked" (Decode.float)))
@@ -40,6 +42,7 @@ entryEncoder struct =
     Encode.object
         [ ( "id", (Encode.int) struct.id )
         , ( "date", (Encode.string) struct.date )
+        , ( "timestamp", (Encode.int) struct.timestamp )
         , ( "checking", (Encode.float) struct.checking )
         , ( "creditAvailable", (Encode.float) struct.creditAvailable )
         , ( "hoursWorked", (Encode.float) struct.hoursWorked )

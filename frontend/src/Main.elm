@@ -31,7 +31,7 @@ type alias Flags =
     { today : String }
 
 type alias EntryForm =
-    { date : String
+    { dateDays : Int  -- Days since epoch (2000-01-01 = 0)
     , checking : String
     , creditAvailable : String
     , hoursWorked : String
@@ -52,19 +52,61 @@ type alias Model =
     , form : EntryForm
     , submitting : Bool
     , key : Nav.Key
-    , today : String
+    , todayDays : Int
     }
 
-emptyForm : String -> String -> EntryForm
-emptyForm today lastPayPerHour =
-    { date = today
+emptyForm : Int -> EntryForm
+emptyForm todayDays =
+    { dateDays = todayDays
     , checking = ""
     , creditAvailable = ""
     , hoursWorked = ""
-    , payPerHour = lastPayPerHour
+    , payPerHour = ""
     , otherIncoming = ""
     , note = ""
     }
+
+
+formFromLastEntry : Int -> Entry -> EntryForm
+formFromLastEntry todayDays entry =
+    { dateDays = todayDays
+    , checking = String.fromFloat entry.checking
+    , creditAvailable = String.fromFloat entry.creditAvailable
+    , hoursWorked = String.fromFloat entry.hoursWorked
+    , payPerHour = String.fromFloat entry.payPerHour
+    , otherIncoming = String.fromFloat entry.otherIncoming
+    , note = ""
+    }
+
+
+formFromEntries : Int -> List Entry -> EntryForm
+formFromEntries todayDays entries =
+    case List.reverse entries |> List.head of
+        Just lastEntry ->
+            formFromLastEntry todayDays lastEntry
+
+        Nothing ->
+            emptyForm todayDays
+
+
+-- Convert date string "YYYY-MM-DD" to days since epoch
+dateToDays : String -> Int
+dateToDays dateStr =
+    case parseDate dateStr of
+        Just ( year, month, day ) ->
+            daysSinceEpoch year month day
+
+        Nothing ->
+            0  -- fallback, shouldn't happen with valid input
+
+
+-- Convert days since epoch back to "YYYY-MM-DD" string
+daysToDateString : Int -> String
+daysToDateString days =
+    let
+        ( year, month, day ) = dateFromDays days
+    in
+    formatDate year month day
 
 urlToPage : Url -> Page
 urlToPage url =
@@ -75,14 +117,17 @@ urlToPage url =
 
 init : Flags -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
+    let
+        todayDays = dateToDays flags.today
+    in
     ( { entries = []
       , error = Nothing
       , loading = True
       , page = urlToPage url
-      , form = emptyForm flags.today ""
+      , form = emptyForm todayDays
       , submitting = False
       , key = key
-      , today = flags.today
+      , todayDays = todayDays
       }
     , fetchData
     )
@@ -95,14 +140,14 @@ type Msg
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
     | UpdateForm FormField String
+    | AdjustDate Int
     | SubmitEntry
     | SubmitResult (Result Http.Error ())
     | DeleteEntry Int
     | DeleteResult (Result Http.Error ())
 
 type FormField
-    = Date
-    | Checking
+    = Checking
     | CreditAvailable
     | HoursWorked
     | PayPerHour
@@ -116,23 +161,10 @@ update msg model =
             case result of
                 Ok entries ->
                     let
-                        lastPayPerHour =
-                            entries
-                                |> List.reverse
-                                |> List.head
-                                |> Maybe.map (.payPerHour >> String.fromFloat)
-                                |> Maybe.withDefault ""
-
+                        -- Only populate form from entries on initial load (when form is empty)
                         updatedForm =
-                            if model.form.payPerHour == "" then
-                                { date = model.form.date
-                                , checking = model.form.checking
-                                , creditAvailable = model.form.creditAvailable
-                                , hoursWorked = model.form.hoursWorked
-                                , payPerHour = lastPayPerHour
-                                , otherIncoming = model.form.otherIncoming
-                                , note = model.form.note
-                                }
+                            if model.form.checking == "" then
+                                formFromEntries model.todayDays entries
                             else
                                 model.form
                     in
@@ -161,7 +193,6 @@ update msg model =
                 f = model.form
                 newForm =
                     case field of
-                        Date -> { f | date = val }
                         Checking -> { f | checking = val }
                         CreditAvailable -> { f | creditAvailable = val }
                         HoursWorked -> { f | hoursWorked = val }
@@ -171,33 +202,49 @@ update msg model =
             in
             ( { model | form = newForm }, Cmd.none )
 
+        AdjustDate delta ->
+            let
+                f = model.form
+            in
+            ( { model | form = { f | dateDays = f.dateDays + delta } }, Cmd.none )
+
         SubmitEntry ->
             let
                 f = model.form
-                newEntry : NewEntry
-                newEntry =
-                    { date = f.date
-                    , checking = String.toFloat f.checking |> Maybe.withDefault 0
-                    , creditAvailable = String.toFloat f.creditAvailable |> Maybe.withDefault 0
-                    , hoursWorked = String.toFloat f.hoursWorked |> Maybe.withDefault 0
-                    , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
-                    , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
-                    , note = f.note
-                    }
+                dateStr = daysToDateString f.dateDays
+                maybeEntry =
+                    Maybe.map2
+                        (\checking creditAvailable ->
+                            { date = dateStr
+                            , checking = checking
+                            , creditAvailable = creditAvailable
+                            , hoursWorked = String.toFloat f.hoursWorked |> Maybe.withDefault 0
+                            , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
+                            , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
+                            , note = f.note
+                            }
+                        )
+                        (String.toFloat f.checking)
+                        (String.toFloat f.creditAvailable)
             in
-            ( { model | submitting = True }
-            , submitEntry newEntry
-            )
+            case maybeEntry of
+                Just newEntry ->
+                    ( { model | submitting = True, error = Nothing }
+                    , submitEntry newEntry
+                    )
+
+                Nothing ->
+                    ( { model | error = Just "Checking and Credit Available are required" }
+                    , Cmd.none
+                    )
 
         SubmitResult result ->
             case result of
                 Ok _ ->
-                    let
-                        lastPayPerHour = model.form.payPerHour
-                    in
+                    -- Reset form to empty so GotData will repopulate from new entry list
                     ( { model
                         | submitting = False
-                        , form = emptyForm model.today lastPayPerHour
+                        , form = emptyForm model.todayDays
                       }
                     , fetchData
                     )
@@ -239,6 +286,110 @@ httpErrorToString err =
 
         Http.BadBody body ->
             "Bad response: " ++ body
+
+
+-- DATE HELPERS
+
+parseDate : String -> Maybe ( Int, Int, Int )
+parseDate str =
+    case String.split "-" str of
+        [ yearStr, monthStr, dayStr ] ->
+            Maybe.map3 (\y m d -> ( y, m, d ))
+                (String.toInt yearStr)
+                (String.toInt monthStr)
+                (String.toInt dayStr)
+
+        _ ->
+            Nothing
+
+
+formatDate : Int -> Int -> Int -> String
+formatDate year month day =
+    String.fromInt year
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt month)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt day)
+
+
+-- Days since epoch (2000-01-01 = day 0)
+daysSinceEpoch : Int -> Int -> Int -> Int
+daysSinceEpoch year month day =
+    let
+        y = year - 2000
+        leapYears = (y + 3) // 4
+        daysInPriorYears = y * 365 + leapYears
+        daysInPriorMonths = daysBeforeMonth year month
+    in
+    daysInPriorYears + daysInPriorMonths + day - 1
+
+
+dateFromDays : Int -> ( Int, Int, Int )
+dateFromDays totalDays =
+    let
+        -- Approximate year
+        approxYear = 2000 + (totalDays * 400) // 146097
+        year = findYear approxYear totalDays
+        dayOfYear = totalDays - daysSinceEpoch year 1 1
+        ( month, day ) = monthAndDayFromDayOfYear year (dayOfYear + 1)
+    in
+    ( year, month, day )
+
+
+findYear : Int -> Int -> Int
+findYear year totalDays =
+    if daysSinceEpoch (year + 1) 1 1 <= totalDays then
+        findYear (year + 1) totalDays
+    else if daysSinceEpoch year 1 1 > totalDays then
+        findYear (year - 1) totalDays
+    else
+        year
+
+
+monthAndDayFromDayOfYear : Int -> Int -> ( Int, Int )
+monthAndDayFromDayOfYear year dayOfYear =
+    findMonth year 1 dayOfYear
+
+
+findMonth : Int -> Int -> Int -> ( Int, Int )
+findMonth year month remainingDays =
+    let
+        daysInThisMonth = daysInMonth year month
+    in
+    if remainingDays <= daysInThisMonth then
+        ( month, remainingDays )
+    else
+        findMonth year (month + 1) (remainingDays - daysInThisMonth)
+
+
+daysBeforeMonth : Int -> Int -> Int
+daysBeforeMonth year month =
+    List.range 1 (month - 1)
+        |> List.map (daysInMonth year)
+        |> List.sum
+
+
+daysInMonth : Int -> Int -> Int
+daysInMonth year month =
+    case month of
+        1 -> 31
+        2 -> if isLeapYear year then 29 else 28
+        3 -> 31
+        4 -> 30
+        5 -> 31
+        6 -> 30
+        7 -> 31
+        8 -> 31
+        9 -> 30
+        10 -> 31
+        11 -> 30
+        12 -> 31
+        _ -> 30
+
+
+isLeapYear : Int -> Bool
+isLeapYear year =
+    (modBy 4 year == 0) && (modBy 100 year /= 0 || modBy 400 year == 0)
 
 
 -- SUBSCRIPTIONS
@@ -336,6 +487,7 @@ viewEntryPage model =
             div []
                 [ viewEntryForm model
                 , viewRecentEntries model.entries
+                , viewCalculated model.entries
                 ]
         , case model.error of
             Just err ->
@@ -358,7 +510,7 @@ viewEntryForm model =
             , style "gap" "10px"
             , style "align-items" "flex-end"
             ]
-            [ viewCompactField "Date" "date" model.form.date (UpdateForm Date) "100px"
+            [ viewDatePicker model.form.dateDays
             , viewCompactField "Checking" "number" model.form.checking (UpdateForm Checking) "90px"
             , viewCompactField "Credit Avail" "number" model.form.creditAvailable (UpdateForm CreditAvailable) "90px"
             , viewCompactField "Hours" "number" model.form.hoursWorked (UpdateForm HoursWorked) "70px"
@@ -380,6 +532,56 @@ viewEntryForm model =
                 [ text (if model.submitting then "..." else "+") ]
             ]
         ]
+
+viewDatePicker : Int -> Html Msg
+viewDatePicker dateDays =
+    let
+        dateStr = daysToDateString dateDays
+    in
+    div [ style "display" "flex", style "flex-direction" "column" ]
+        [ label
+            [ style "font-size" "0.7em"
+            , style "color" "#888"
+            , style "margin-bottom" "3px"
+            ]
+            [ text "Date" ]
+        , div [ style "display" "flex", style "align-items" "center", style "gap" "5px" ]
+            [ button
+                [ onClick (AdjustDate -1)
+                , style "padding" "8px 12px"
+                , style "background" "#1a1a2e"
+                , style "border" "1px solid #333"
+                , style "border-radius" "4px"
+                , style "color" "#eee"
+                , style "font-size" "1em"
+                , style "cursor" "pointer"
+                ]
+                [ text "-" ]
+            , span
+                [ style "padding" "8px 12px"
+                , style "background" "#1a1a2e"
+                , style "border" "1px solid #333"
+                , style "border-radius" "4px"
+                , style "color" "#eee"
+                , style "font-size" "0.9em"
+                , style "min-width" "100px"
+                , style "text-align" "center"
+                ]
+                [ text dateStr ]
+            , button
+                [ onClick (AdjustDate 1)
+                , style "padding" "8px 12px"
+                , style "background" "#1a1a2e"
+                , style "border" "1px solid #333"
+                , style "border-radius" "4px"
+                , style "color" "#eee"
+                , style "font-size" "1em"
+                , style "cursor" "pointer"
+                ]
+                [ text "+" ]
+            ]
+        ]
+
 
 viewCompactField : String -> String -> String -> (String -> Msg) -> String -> Html Msg
 viewCompactField labelText inputType val toMsg width =
@@ -467,6 +669,24 @@ viewRecentEntry entry =
             ]
             [ text "X" ]
         ]
+
+viewCalculated : List Entry -> Html Msg
+viewCalculated _ =
+    div
+        [ style "background" "#252542"
+        , style "padding" "15px"
+        , style "border-radius" "12px"
+        , style "margin-bottom" "20px"
+        ]
+        [ h2
+            [ style "font-weight" "300"
+            , style "font-size" "1em"
+            , style "margin" "0 0 10px 0"
+            , style "color" "#888"
+            ]
+            [ text "Calculated" ]
+        ]
+
 
 viewGraphPlaceholder : Html Msg
 viewGraphPlaceholder =

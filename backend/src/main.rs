@@ -7,6 +7,7 @@ use axum::{
     Json, Router,
 };
 use std::sync::{Arc, RwLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{fs, path::PathBuf};
 use tower_http::services::{ServeDir, ServeFile};
 use types::{ApiResponse, Entry, NewEntry};
@@ -54,9 +55,15 @@ async fn create_entry(
 ) -> (StatusCode, Json<ApiResponse>) {
     let mut data = state.write().unwrap();
 
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
     let entry = Entry {
         id: data.next_id,
         date: new_entry.date,
+        timestamp,
         checking: new_entry.checking,
         credit_available: new_entry.credit_available,
         hours_worked: new_entry.hours_worked,
@@ -106,7 +113,7 @@ async fn main() {
     let api_routes = Router::new()
         .route("/data", get(get_entries))
         .route("/entry", post(create_entry))
-        .route("/entry/{id}", delete(delete_entry));
+        .route("/entry/:id", delete(delete_entry));
 
     // Main app: API + static files (with SPA fallback to index.html)
     let serve_dir = ServeDir::new("dist")

@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct Entry {
     pub id: i32,
     pub date: String,
+    pub timestamp: i64,
     pub checking: f64,
     pub credit_available: f64,
     pub hours_worked: f64,

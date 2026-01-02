@@ -519,11 +519,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.Z.D === region.ae.D)
+	if (region._.E === region.ag.E)
 	{
-		return 'on line ' + region.Z.D;
+		return 'on line ' + region._.E;
 	}
-	return 'on lines ' + region.Z.D + ' through ' + region.ae.D;
+	return 'on lines ' + region._.E + ' through ' + region.ag.E;
 }
 
 
@@ -1857,9 +1857,9 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.aP,
-		impl.a3,
-		impl.a$,
+		impl.aS,
+		impl.a6,
+		impl.a2,
 		function() { return function() {} }
 	);
 });
@@ -2719,9 +2719,9 @@ var _VirtualDom_mapEventTuple = F2(function(func, tuple)
 var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
-		p: func(record.p),
-		_: record._,
-		X: record.X
+		q: func(record.q),
+		aa: record.aa,
+		Y: record.Y
 	}
 });
 
@@ -2989,11 +2989,11 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		// 3 = Custom
 
 		var value = result.a;
-		var message = !tag ? value : tag < 3 ? value.a : value.p;
-		var stopPropagation = tag == 1 ? value.b : tag == 3 && value._;
+		var message = !tag ? value : tag < 3 ? value.a : value.q;
+		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.aa;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.X) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.Y) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3943,11 +3943,11 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.aP,
-		impl.a3,
-		impl.a$,
+		impl.aS,
+		impl.a6,
+		impl.a2,
 		function(sendToApp, initialModel) {
-			var view = impl.a4;
+			var view = impl.a7;
 			/**/
 			var domNode = args['node'];
 			//*/
@@ -3979,12 +3979,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.aP,
-		impl.a3,
-		impl.a$,
+		impl.aS,
+		impl.a6,
+		impl.a2,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.Y && impl.Y(sendToApp)
-			var view = impl.a4;
+			var divertHrefToApp = impl.Z && impl.Z(sendToApp)
+			var view = impl.a7;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -3992,12 +3992,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 			{
 				_VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
-				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.S);
+				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.T);
 				var patches = _VirtualDom_diff(currNode, nextNode);
 				bodyNode = _VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
 				_VirtualDom_divertHrefToApp = 0;
-				(title !== doc.a1) && (_VirtualDom_doc.title = title = doc.a1);
+				(title !== doc.a4) && (_VirtualDom_doc.title = title = doc.a4);
 			});
 		}
 	);
@@ -4053,12 +4053,12 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var onUrlChange = impl.aS;
-	var onUrlRequest = impl.aT;
+	var onUrlChange = impl.aV;
+	var onUrlRequest = impl.aW;
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		Y: function(sendToApp)
+		Z: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -4074,9 +4074,9 @@ function _Browser_application(impl)
 					var next = $elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.ar === next.ar
-							&& curr.ai === next.ai
-							&& curr.ao.a === next.ao.a
+							&& curr.at === next.at
+							&& curr.ak === next.ak
+							&& curr.aq.a === next.aq.a
 						)
 							? $elm$browser$Browser$Internal(next)
 							: $elm$browser$Browser$External(href)
@@ -4084,13 +4084,13 @@ function _Browser_application(impl)
 				}
 			});
 		},
-		aP: function(flags)
+		aS: function(flags)
 		{
-			return A3(impl.aP, flags, _Browser_getUrl(), key);
+			return A3(impl.aS, flags, _Browser_getUrl(), key);
 		},
-		a4: impl.a4,
-		a3: impl.a3,
-		a$: impl.a$
+		a7: impl.a7,
+		a6: impl.a6,
+		a2: impl.a2
 	});
 }
 
@@ -4156,17 +4156,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { aN: 'hidden', aI: 'visibilitychange' }
+		? { aQ: 'hidden', aL: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { aN: 'mozHidden', aI: 'mozvisibilitychange' }
+		? { aQ: 'mozHidden', aL: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { aN: 'msHidden', aI: 'msvisibilitychange' }
+		? { aQ: 'msHidden', aL: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { aN: 'webkitHidden', aI: 'webkitvisibilitychange' }
-		: { aN: 'hidden', aI: 'visibilitychange' };
+		? { aQ: 'webkitHidden', aL: 'webkitvisibilitychange' }
+		: { aQ: 'hidden', aL: 'visibilitychange' };
 }
 
 
@@ -4247,12 +4247,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		ax: _Browser_getScene(),
-		aB: {
-			aD: _Browser_window.pageXOffset,
-			aE: _Browser_window.pageYOffset,
-			aC: _Browser_doc.documentElement.clientWidth,
-			ah: _Browser_doc.documentElement.clientHeight
+		az: _Browser_getScene(),
+		aE: {
+			aG: _Browser_window.pageXOffset,
+			aH: _Browser_window.pageYOffset,
+			aF: _Browser_doc.documentElement.clientWidth,
+			aj: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4262,8 +4262,8 @@ function _Browser_getScene()
 	var body = _Browser_doc.body;
 	var elem = _Browser_doc.documentElement;
 	return {
-		aC: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		ah: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		aF: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		aj: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4286,15 +4286,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			ax: {
-				aC: node.scrollWidth,
-				ah: node.scrollHeight
+			az: {
+				aF: node.scrollWidth,
+				aj: node.scrollHeight
 			},
-			aB: {
-				aD: node.scrollLeft,
-				aE: node.scrollTop,
-				aC: node.clientWidth,
-				ah: node.clientHeight
+			aE: {
+				aG: node.scrollLeft,
+				aH: node.scrollTop,
+				aF: node.clientWidth,
+				aj: node.clientHeight
 			}
 		};
 	});
@@ -4324,18 +4324,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			ax: _Browser_getScene(),
-			aB: {
-				aD: x,
-				aE: y,
-				aC: _Browser_doc.documentElement.clientWidth,
-				ah: _Browser_doc.documentElement.clientHeight
+			az: _Browser_getScene(),
+			aE: {
+				aG: x,
+				aH: y,
+				aF: _Browser_doc.documentElement.clientWidth,
+				aj: _Browser_doc.documentElement.clientHeight
 			},
-			aK: {
-				aD: x + rect.left,
-				aE: y + rect.top,
-				aC: rect.width,
-				ah: rect.height
+			aN: {
+				aG: x + rect.left,
+				aH: y + rect.top,
+				aF: rect.width,
+				aj: rect.height
 			}
 		};
 	});
@@ -4380,25 +4380,25 @@ var _Http_toTask = F3(function(router, toTask, request)
 	return _Scheduler_binding(function(callback)
 	{
 		function done(response) {
-			callback(toTask(request.T.a(response)));
+			callback(toTask(request.U.a(response)));
 		}
 
 		var xhr = new XMLHttpRequest();
 		xhr.addEventListener('error', function() { done($elm$http$Http$NetworkError_); });
 		xhr.addEventListener('timeout', function() { done($elm$http$Http$Timeout_); });
-		xhr.addEventListener('load', function() { done(_Http_toResponse(request.T.b, xhr)); });
-		$elm$core$Maybe$isJust(request.a2) && _Http_track(router, xhr, request.a2.a);
+		xhr.addEventListener('load', function() { done(_Http_toResponse(request.U.b, xhr)); });
+		$elm$core$Maybe$isJust(request.a5) && _Http_track(router, xhr, request.a5.a);
 
 		try {
-			xhr.open(request.aQ, request.aa, true);
+			xhr.open(request.aT, request.ac, true);
 		} catch (e) {
-			return done($elm$http$Http$BadUrl_(request.aa));
+			return done($elm$http$Http$BadUrl_(request.ac));
 		}
 
 		_Http_configureRequest(xhr, request);
 
-		request.S.a && xhr.setRequestHeader('Content-Type', request.S.a);
-		xhr.send(request.S.b);
+		request.T.a && xhr.setRequestHeader('Content-Type', request.T.a);
+		xhr.send(request.T.b);
 
 		return function() { xhr.c = true; xhr.abort(); };
 	});
@@ -4409,13 +4409,13 @@ var _Http_toTask = F3(function(router, toTask, request)
 
 function _Http_configureRequest(xhr, request)
 {
-	for (var headers = request.aM; headers.b; headers = headers.b) // WHILE_CONS
+	for (var headers = request.aP; headers.b; headers = headers.b) // WHILE_CONS
 	{
 		xhr.setRequestHeader(headers.a.a, headers.a.b);
 	}
-	xhr.timeout = request.a0.a || 0;
-	xhr.responseType = request.T.d;
-	xhr.withCredentials = request.aG;
+	xhr.timeout = request.a3.a || 0;
+	xhr.responseType = request.U.d;
+	xhr.withCredentials = request.aJ;
 }
 
 
@@ -4436,10 +4436,10 @@ function _Http_toResponse(toBody, xhr)
 function _Http_toMetadata(xhr)
 {
 	return {
-		aa: xhr.responseURL,
-		aZ: xhr.status,
-		a_: xhr.statusText,
-		aM: _Http_parseHeaders(xhr.getAllResponseHeaders())
+		ac: xhr.responseURL,
+		a0: xhr.status,
+		a1: xhr.statusText,
+		aP: _Http_parseHeaders(xhr.getAllResponseHeaders())
 	};
 }
 
@@ -4534,18 +4534,55 @@ function _Http_track(router, xhr, tracker)
 	xhr.upload.addEventListener('progress', function(event) {
 		if (xhr.c) { return; }
 		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Sending({
-			aY: event.loaded,
-			ay: event.total
+			a$: event.loaded,
+			aA: event.total
 		}))));
 	});
 	xhr.addEventListener('progress', function(event) {
 		if (xhr.c) { return; }
 		_Scheduler_rawSpawn(A2($elm$core$Platform$sendToSelf, router, _Utils_Tuple2(tracker, $elm$http$Http$Receiving({
-			aW: event.loaded,
-			ay: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
+			aZ: event.loaded,
+			aA: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
 		}))));
 	});
-}var $author$project$Main$LinkClicked = function (a) {
+}
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+var $author$project$Main$LinkClicked = function (a) {
 	return {$: 2, a: a};
 };
 var $author$project$Main$UrlChanged = function (a) {
@@ -4957,7 +4994,7 @@ var $elm$core$Array$treeFromBuilder = F2(
 	});
 var $elm$core$Array$builderToArray = F2(
 	function (reverseNodeList, builder) {
-		if (!builder.b) {
+		if (!builder.a) {
 			return A4(
 				$elm$core$Array$Array_elm_builtin,
 				$elm$core$Elm$JsArray$length(builder.d),
@@ -4965,11 +5002,11 @@ var $elm$core$Array$builderToArray = F2(
 				$elm$core$Elm$JsArray$empty,
 				builder.d);
 		} else {
-			var treeLen = builder.b * $elm$core$Array$branchFactor;
+			var treeLen = builder.a * $elm$core$Array$branchFactor;
 			var depth = $elm$core$Basics$floor(
 				A2($elm$core$Basics$logBase, $elm$core$Array$branchFactor, treeLen - 1));
 			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.e) : builder.e;
-			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.b);
+			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.a);
 			return A4(
 				$elm$core$Array$Array_elm_builtin,
 				$elm$core$Elm$JsArray$length(builder.d) + treeLen,
@@ -4988,7 +5025,7 @@ var $elm$core$Array$initializeHelp = F5(
 				return A2(
 					$elm$core$Array$builderToArray,
 					false,
-					{e: nodeList, b: (len / $elm$core$Array$branchFactor) | 0, d: tail});
+					{e: nodeList, a: (len / $elm$core$Array$branchFactor) | 0, d: tail});
 			} else {
 				var leaf = $elm$core$Array$Leaf(
 					A3($elm$core$Elm$JsArray$initialize, $elm$core$Array$branchFactor, fromIndex, fn));
@@ -5056,7 +5093,7 @@ var $elm$url$Url$Http = 0;
 var $elm$url$Url$Https = 1;
 var $elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {ag: fragment, ai: host, aV: path, ao: port_, ar: protocol, as: query};
+		return {ai: fragment, ak: host, aY: path, aq: port_, at: protocol, au: query};
 	});
 var $elm$core$String$contains = _String_contains;
 var $elm$core$String$length = _String_length;
@@ -5336,16 +5373,123 @@ var $elm$core$Task$perform = F2(
 	});
 var $elm$browser$Browser$application = _Browser_application;
 var $elm$json$Json$Decode$field = _Json_decodeField;
-var $author$project$Main$emptyForm = F2(
-	function (today, lastPayPerHour) {
-		return {J: '', K: '', L: today, N: '', O: '', P: '', R: lastPayPerHour};
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $author$project$Main$isLeapYear = function (year) {
+	return (!A2($elm$core$Basics$modBy, 4, year)) && ((!(!A2($elm$core$Basics$modBy, 100, year))) || (!A2($elm$core$Basics$modBy, 400, year)));
+};
+var $author$project$Main$daysInMonth = F2(
+	function (year, month) {
+		switch (month) {
+			case 1:
+				return 31;
+			case 2:
+				return $author$project$Main$isLeapYear(year) ? 29 : 28;
+			case 3:
+				return 31;
+			case 4:
+				return 30;
+			case 5:
+				return 31;
+			case 6:
+				return 30;
+			case 7:
+				return 31;
+			case 8:
+				return 31;
+			case 9:
+				return 30;
+			case 10:
+				return 31;
+			case 11:
+				return 30;
+			case 12:
+				return 31;
+			default:
+				return 30;
+		}
 	});
+var $elm$core$List$sum = function (numbers) {
+	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+};
+var $author$project$Main$daysBeforeMonth = F2(
+	function (year, month) {
+		return $elm$core$List$sum(
+			A2(
+				$elm$core$List$map,
+				$author$project$Main$daysInMonth(year),
+				A2($elm$core$List$range, 1, month - 1)));
+	});
+var $author$project$Main$daysSinceEpoch = F3(
+	function (year, month, day) {
+		var y = year - 2000;
+		var leapYears = ((y + 3) / 4) | 0;
+		var daysInPriorYears = (y * 365) + leapYears;
+		var daysInPriorMonths = A2($author$project$Main$daysBeforeMonth, year, month);
+		return ((daysInPriorYears + daysInPriorMonths) + day) - 1;
+	});
+var $elm$core$Maybe$map3 = F4(
+	function (func, ma, mb, mc) {
+		if (ma.$ === 1) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 1) {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				if (mc.$ === 1) {
+					return $elm$core$Maybe$Nothing;
+				} else {
+					var c = mc.a;
+					return $elm$core$Maybe$Just(
+						A3(func, a, b, c));
+				}
+			}
+		}
+	});
+var $author$project$Main$parseDate = function (str) {
+	var _v0 = A2($elm$core$String$split, '-', str);
+	if (((_v0.b && _v0.b.b) && _v0.b.b.b) && (!_v0.b.b.b.b)) {
+		var yearStr = _v0.a;
+		var _v1 = _v0.b;
+		var monthStr = _v1.a;
+		var _v2 = _v1.b;
+		var dayStr = _v2.a;
+		return A4(
+			$elm$core$Maybe$map3,
+			F3(
+				function (y, m, d) {
+					return _Utils_Tuple3(y, m, d);
+				}),
+			$elm$core$String$toInt(yearStr),
+			$elm$core$String$toInt(monthStr),
+			$elm$core$String$toInt(dayStr));
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Main$dateToDays = function (dateStr) {
+	var _v0 = $author$project$Main$parseDate(dateStr);
+	if (!_v0.$) {
+		var _v1 = _v0.a;
+		var year = _v1.a;
+		var month = _v1.b;
+		var day = _v1.c;
+		return A3($author$project$Main$daysSinceEpoch, year, month, day);
+	} else {
+		return 0;
+	}
+};
+var $author$project$Main$emptyForm = function (todayDays) {
+	return {K: '', L: '', t: todayDays, N: '', O: '', P: '', R: ''};
+};
 var $author$project$Main$GotData = function (a) {
 	return {$: 0, a: a};
 };
-var $author$project$Api$Types$Entry = F8(
-	function (id, date, checking, creditAvailable, hoursWorked, payPerHour, otherIncoming, note) {
-		return {J: checking, K: creditAvailable, L: date, N: hoursWorked, aj: id, O: note, P: otherIncoming, R: payPerHour};
+var $author$project$Api$Types$Entry = F9(
+	function (id, date, timestamp, checking, creditAvailable, hoursWorked, payPerHour, otherIncoming, note) {
+		return {K: checking, L: creditAvailable, M: date, N: hoursWorked, al: id, O: note, P: otherIncoming, R: payPerHour, aD: timestamp};
 	});
 var $elm$json$Json$Decode$float = _Json_decodeFloat;
 var $elm$json$Json$Decode$int = _Json_decodeInt;
@@ -5404,7 +5548,7 @@ var $author$project$Api$Types$entryDecoder = A2(
 								return A2(
 									$elm$json$Json$Decode$map,
 									x,
-									A2($elm$json$Json$Decode$field, 'date', $elm$json$Json$Decode$string));
+									A2($elm$json$Json$Decode$field, 'timestamp', $elm$json$Json$Decode$int));
 							},
 							A2(
 								$elm$json$Json$Decode$andThen,
@@ -5412,9 +5556,17 @@ var $author$project$Api$Types$entryDecoder = A2(
 									return A2(
 										$elm$json$Json$Decode$map,
 										x,
-										A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int));
+										A2($elm$json$Json$Decode$field, 'date', $elm$json$Json$Decode$string));
 								},
-								$elm$json$Json$Decode$succeed($author$project$Api$Types$Entry)))))))));
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (x) {
+										return A2(
+											$elm$json$Json$Decode$map,
+											x,
+											A2($elm$json$Json$Decode$field, 'id', $elm$json$Json$Decode$int));
+									},
+									$elm$json$Json$Decode$succeed($author$project$Api$Types$Entry))))))))));
 var $elm$json$Json$Decode$list = _Json_decodeList;
 var $author$project$Main$dataDecoder = $elm$json$Json$Decode$list($author$project$Api$Types$entryDecoder);
 var $elm$json$Json$Decode$decodeString = _Json_runOnString;
@@ -6009,7 +6161,7 @@ var $elm$http$Http$resolve = F2(
 			case 3:
 				var metadata = response.a;
 				return $elm$core$Result$Err(
-					$elm$http$Http$BadStatus(metadata.aZ));
+					$elm$http$Http$BadStatus(metadata.a0));
 			default:
 				var body = response.b;
 				return A2(
@@ -6037,7 +6189,7 @@ var $elm$http$Http$Request = function (a) {
 };
 var $elm$http$Http$State = F2(
 	function (reqs, subs) {
-		return {au: reqs, az: subs};
+		return {aw: reqs, aB: subs};
 	});
 var $elm$http$Http$init = $elm$core$Task$succeed(
 	A2($elm$http$Http$State, $elm$core$Dict$empty, _List_Nil));
@@ -6081,7 +6233,7 @@ var $elm$http$Http$updateReqs = F3(
 					return A2(
 						$elm$core$Task$andThen,
 						function (pid) {
-							var _v4 = req.a2;
+							var _v4 = req.a5;
 							if (_v4.$ === 1) {
 								return A3($elm$http$Http$updateReqs, router, otherCmds, reqs);
 							} else {
@@ -6111,7 +6263,7 @@ var $elm$http$Http$onEffects = F4(
 				return $elm$core$Task$succeed(
 					A2($elm$http$Http$State, reqs, subs));
 			},
-			A3($elm$http$Http$updateReqs, router, cmds, state.au));
+			A3($elm$http$Http$updateReqs, router, cmds, state.aw));
 	});
 var $elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
@@ -6154,7 +6306,7 @@ var $elm$http$Http$onSelfMsg = F3(
 				A2(
 					$elm$core$List$filterMap,
 					A3($elm$http$Http$maybeSend, router, tracker, progress),
-					state.az)));
+					state.aB)));
 	});
 var $elm$http$Http$Cancel = function (a) {
 	return {$: 0, a: a};
@@ -6168,14 +6320,14 @@ var $elm$http$Http$cmdMap = F2(
 			var r = cmd.a;
 			return $elm$http$Http$Request(
 				{
-					aG: r.aG,
-					S: r.S,
-					T: A2(_Http_mapExpect, func, r.T),
-					aM: r.aM,
-					aQ: r.aQ,
-					a0: r.a0,
-					a2: r.a2,
-					aa: r.aa
+					aJ: r.aJ,
+					T: r.T,
+					U: A2(_Http_mapExpect, func, r.U),
+					aP: r.aP,
+					aT: r.aT,
+					a3: r.a3,
+					a5: r.a5,
+					ac: r.ac
 				});
 		}
 	});
@@ -6198,34 +6350,35 @@ var $elm$http$Http$subscription = _Platform_leaf('Http');
 var $elm$http$Http$request = function (r) {
 	return $elm$http$Http$command(
 		$elm$http$Http$Request(
-			{aG: false, S: r.S, T: r.T, aM: r.aM, aQ: r.aQ, a0: r.a0, a2: r.a2, aa: r.aa}));
+			{aJ: false, T: r.T, U: r.U, aP: r.aP, aT: r.aT, a3: r.a3, a5: r.a5, ac: r.ac}));
 };
 var $elm$http$Http$get = function (r) {
 	return $elm$http$Http$request(
-		{S: $elm$http$Http$emptyBody, T: r.T, aM: _List_Nil, aQ: 'GET', a0: $elm$core$Maybe$Nothing, a2: $elm$core$Maybe$Nothing, aa: r.aa});
+		{T: $elm$http$Http$emptyBody, U: r.U, aP: _List_Nil, aT: 'GET', a3: $elm$core$Maybe$Nothing, a5: $elm$core$Maybe$Nothing, ac: r.ac});
 };
 var $author$project$Main$fetchData = $elm$http$Http$get(
 	{
-		T: A2($elm$http$Http$expectJson, $author$project$Main$GotData, $author$project$Main$dataDecoder),
-		aa: '/api/data'
+		U: A2($elm$http$Http$expectJson, $author$project$Main$GotData, $author$project$Main$dataDecoder),
+		ac: '/api/data'
 	});
 var $author$project$Main$EntryPage = 1;
 var $author$project$Main$GraphPage = 0;
 var $author$project$Main$urlToPage = function (url) {
-	return A2($elm$core$String$contains, '/entry', url.aV) ? 1 : 0;
+	return A2($elm$core$String$contains, '/entry', url.aY) ? 1 : 0;
 };
 var $author$project$Main$init = F3(
 	function (flags, url, key) {
+		var todayDays = $author$project$Main$dateToDays(flags.ab);
 		return _Utils_Tuple2(
 			{
-				M: _List_Nil,
-				s: $elm$core$Maybe$Nothing,
-				a: A2($author$project$Main$emptyForm, flags.w, ''),
-				U: key,
-				E: true,
+				D: _List_Nil,
+				m: $elm$core$Maybe$Nothing,
+				c: $author$project$Main$emptyForm(todayDays),
+				V: key,
+				F: true,
 				Q: $author$project$Main$urlToPage(url),
 				A: false,
-				w: flags.w
+				S: todayDays
 			},
 			$author$project$Main$fetchData);
 	});
@@ -6234,8 +6387,112 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
+var $author$project$Main$findYear = F2(
+	function (year, totalDays) {
+		findYear:
+		while (true) {
+			if (_Utils_cmp(
+				A3($author$project$Main$daysSinceEpoch, year + 1, 1, 1),
+				totalDays) < 1) {
+				var $temp$year = year + 1,
+					$temp$totalDays = totalDays;
+				year = $temp$year;
+				totalDays = $temp$totalDays;
+				continue findYear;
+			} else {
+				if (_Utils_cmp(
+					A3($author$project$Main$daysSinceEpoch, year, 1, 1),
+					totalDays) > 0) {
+					var $temp$year = year - 1,
+						$temp$totalDays = totalDays;
+					year = $temp$year;
+					totalDays = $temp$totalDays;
+					continue findYear;
+				} else {
+					return year;
+				}
+			}
+		}
+	});
+var $author$project$Main$findMonth = F3(
+	function (year, month, remainingDays) {
+		findMonth:
+		while (true) {
+			var daysInThisMonth = A2($author$project$Main$daysInMonth, year, month);
+			if (_Utils_cmp(remainingDays, daysInThisMonth) < 1) {
+				return _Utils_Tuple2(month, remainingDays);
+			} else {
+				var $temp$year = year,
+					$temp$month = month + 1,
+					$temp$remainingDays = remainingDays - daysInThisMonth;
+				year = $temp$year;
+				month = $temp$month;
+				remainingDays = $temp$remainingDays;
+				continue findMonth;
+			}
+		}
+	});
+var $author$project$Main$monthAndDayFromDayOfYear = F2(
+	function (year, dayOfYear) {
+		return A3($author$project$Main$findMonth, year, 1, dayOfYear);
+	});
+var $author$project$Main$dateFromDays = function (totalDays) {
+	var approxYear = 2000 + (((totalDays * 400) / 146097) | 0);
+	var year = A2($author$project$Main$findYear, approxYear, totalDays);
+	var dayOfYear = totalDays - A3($author$project$Main$daysSinceEpoch, year, 1, 1);
+	var _v0 = A2($author$project$Main$monthAndDayFromDayOfYear, year, dayOfYear + 1);
+	var month = _v0.a;
+	var day = _v0.b;
+	return _Utils_Tuple3(year, month, day);
+};
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			$elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var $elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3($elm$core$String$repeatHelp, n, chunk, '');
+	});
+var $elm$core$String$padLeft = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			A2(
+				$elm$core$String$repeat,
+				n - $elm$core$String$length(string),
+				$elm$core$String$fromChar(_char)),
+			string);
+	});
+var $author$project$Main$formatDate = F3(
+	function (year, month, day) {
+		return $elm$core$String$fromInt(year) + ('-' + (A3(
+			$elm$core$String$padLeft,
+			2,
+			'0',
+			$elm$core$String$fromInt(month)) + ('-' + A3(
+			$elm$core$String$padLeft,
+			2,
+			'0',
+			$elm$core$String$fromInt(day)))));
+	});
+var $author$project$Main$daysToDateString = function (days) {
+	var _v0 = $author$project$Main$dateFromDays(days);
+	var year = _v0.a;
+	var month = _v0.b;
+	var day = _v0.c;
+	return A3($author$project$Main$formatDate, year, month, day);
+};
 var $author$project$Main$DeleteResult = function (a) {
-	return {$: 7, a: a};
+	return {$: 8, a: a};
 };
 var $elm$http$Http$expectBytesResponse = F2(
 	function (toMsg, toResult) {
@@ -6257,16 +6514,28 @@ var $elm$http$Http$expectWhatever = function (toMsg) {
 var $author$project$Main$deleteEntry = function (entryId) {
 	return $elm$http$Http$request(
 		{
-			S: $elm$http$Http$emptyBody,
-			T: $elm$http$Http$expectWhatever($author$project$Main$DeleteResult),
-			aM: _List_Nil,
-			aQ: 'DELETE',
-			a0: $elm$core$Maybe$Nothing,
-			a2: $elm$core$Maybe$Nothing,
-			aa: '/api/entry/' + $elm$core$String$fromInt(entryId)
+			T: $elm$http$Http$emptyBody,
+			U: $elm$http$Http$expectWhatever($author$project$Main$DeleteResult),
+			aP: _List_Nil,
+			aT: 'DELETE',
+			a3: $elm$core$Maybe$Nothing,
+			a5: $elm$core$Maybe$Nothing,
+			ac: '/api/entry/' + $elm$core$String$fromInt(entryId)
 		});
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
+var $author$project$Main$formFromLastEntry = F2(
+	function (todayDays, entry) {
+		return {
+			K: $elm$core$String$fromFloat(entry.K),
+			L: $elm$core$String$fromFloat(entry.L),
+			t: todayDays,
+			N: $elm$core$String$fromFloat(entry.N),
+			O: '',
+			P: $elm$core$String$fromFloat(entry.P),
+			R: $elm$core$String$fromFloat(entry.R)
+		};
+	});
 var $elm$core$List$head = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -6276,6 +6545,17 @@ var $elm$core$List$head = function (list) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
+var $author$project$Main$formFromEntries = F2(
+	function (todayDays, entries) {
+		var _v0 = $elm$core$List$head(
+			$elm$core$List$reverse(entries));
+		if (!_v0.$) {
+			var lastEntry = _v0.a;
+			return A2($author$project$Main$formFromLastEntry, todayDays, lastEntry);
+		} else {
+			return $author$project$Main$emptyForm(todayDays);
+		}
+	});
 var $author$project$Main$httpErrorToString = function (err) {
 	switch (err.$) {
 		case 0:
@@ -6294,21 +6574,26 @@ var $author$project$Main$httpErrorToString = function (err) {
 	}
 };
 var $elm$browser$Browser$Navigation$load = _Browser_load;
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (!maybe.$) {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
+var $elm$core$Maybe$map2 = F3(
+	function (func, ma, mb) {
+		if (ma.$ === 1) {
 			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 1) {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				return $elm$core$Maybe$Just(
+					A2(func, a, b));
+			}
 		}
 	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $author$project$Main$SubmitResult = function (a) {
-	return {$: 5, a: a};
+	return {$: 6, a: a};
 };
 var $elm$http$Http$jsonBody = function (value) {
 	return A2(
@@ -6337,13 +6622,13 @@ var $author$project$Api$Types$newEntryEncoder = function (struct) {
 			[
 				_Utils_Tuple2(
 				'date',
-				$elm$json$Json$Encode$string(struct.L)),
+				$elm$json$Json$Encode$string(struct.M)),
 				_Utils_Tuple2(
 				'checking',
-				$elm$json$Json$Encode$float(struct.J)),
+				$elm$json$Json$Encode$float(struct.K)),
 				_Utils_Tuple2(
 				'creditAvailable',
-				$elm$json$Json$Encode$float(struct.K)),
+				$elm$json$Json$Encode$float(struct.L)),
 				_Utils_Tuple2(
 				'hoursWorked',
 				$elm$json$Json$Encode$float(struct.N)),
@@ -6360,15 +6645,15 @@ var $author$project$Api$Types$newEntryEncoder = function (struct) {
 };
 var $elm$http$Http$post = function (r) {
 	return $elm$http$Http$request(
-		{S: r.S, T: r.T, aM: _List_Nil, aQ: 'POST', a0: $elm$core$Maybe$Nothing, a2: $elm$core$Maybe$Nothing, aa: r.aa});
+		{T: r.T, U: r.U, aP: _List_Nil, aT: 'POST', a3: $elm$core$Maybe$Nothing, a5: $elm$core$Maybe$Nothing, ac: r.ac});
 };
 var $author$project$Main$submitEntry = function (newEntry) {
 	return $elm$http$Http$post(
 		{
-			S: $elm$http$Http$jsonBody(
+			T: $elm$http$Http$jsonBody(
 				$author$project$Api$Types$newEntryEncoder(newEntry)),
-			T: $elm$http$Http$expectWhatever($author$project$Main$SubmitResult),
-			aa: '/api/entry'
+			U: $elm$http$Http$expectWhatever($author$project$Main$SubmitResult),
+			ac: '/api/entry'
 		});
 };
 var $elm$core$String$toFloat = _String_toFloat;
@@ -6394,7 +6679,7 @@ var $elm$url$Url$addPrefixed = F3(
 	});
 var $elm$url$Url$toString = function (url) {
 	var http = function () {
-		var _v0 = url.ar;
+		var _v0 = url.at;
 		if (!_v0) {
 			return 'http://';
 		} else {
@@ -6404,17 +6689,17 @@ var $elm$url$Url$toString = function (url) {
 	return A3(
 		$elm$url$Url$addPrefixed,
 		'#',
-		url.ag,
+		url.ai,
 		A3(
 			$elm$url$Url$addPrefixed,
 			'?',
-			url.as,
+			url.au,
 			_Utils_ap(
 				A2(
 					$elm$url$Url$addPort,
-					url.ao,
-					_Utils_ap(http, url.ai)),
-				url.aV)));
+					url.aq,
+					_Utils_ap(http, url.ak)),
+				url.aY)));
 };
 var $elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
@@ -6432,24 +6717,11 @@ var $author$project$Main$update = F2(
 				var result = msg.a;
 				if (!result.$) {
 					var entries = result.a;
-					var lastPayPerHour = A2(
-						$elm$core$Maybe$withDefault,
-						'',
-						A2(
-							$elm$core$Maybe$map,
-							A2(
-								$elm$core$Basics$composeR,
-								function ($) {
-									return $.R;
-								},
-								$elm$core$String$fromFloat),
-							$elm$core$List$head(
-								$elm$core$List$reverse(entries))));
-					var updatedForm = (model.a.R === '') ? {J: model.a.J, K: model.a.K, L: model.a.L, N: model.a.N, O: model.a.O, P: model.a.P, R: lastPayPerHour} : model.a;
+					var updatedForm = (model.c.K === '') ? A2($author$project$Main$formFromEntries, model.S, entries) : model.c;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{M: entries, s: $elm$core$Maybe$Nothing, a: updatedForm, E: false}),
+							{D: entries, m: $elm$core$Maybe$Nothing, c: updatedForm, F: false}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var err = result.a;
@@ -6457,9 +6729,9 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{
-								s: $elm$core$Maybe$Just(
+								m: $elm$core$Maybe$Just(
 									$author$project$Main$httpErrorToString(err)),
-								E: false
+								F: false
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
@@ -6480,7 +6752,7 @@ var $author$project$Main$update = F2(
 						model,
 						A2(
 							$elm$browser$Browser$Navigation$pushUrl,
-							model.U,
+							model.V,
 							$elm$url$Url$toString(url)));
 				} else {
 					var href = request.a;
@@ -6491,30 +6763,26 @@ var $author$project$Main$update = F2(
 			case 3:
 				var field = msg.a;
 				var val = msg.b;
-				var f = model.a;
+				var f = model.c;
 				var newForm = function () {
 					switch (field) {
 						case 0:
 							return _Utils_update(
 								f,
-								{L: val});
+								{K: val});
 						case 1:
 							return _Utils_update(
 								f,
-								{J: val});
+								{L: val});
 						case 2:
 							return _Utils_update(
 								f,
-								{K: val});
+								{N: val});
 						case 3:
 							return _Utils_update(
 								f,
-								{N: val});
-						case 4:
-							return _Utils_update(
-								f,
 								{R: val});
-						case 5:
+						case 4:
 							return _Utils_update(
 								f,
 								{P: val});
@@ -6527,48 +6795,72 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{a: newForm}),
+						{c: newForm}),
 					$elm$core$Platform$Cmd$none);
 			case 4:
-				var f = model.a;
-				var newEntry = {
-					J: A2(
-						$elm$core$Maybe$withDefault,
-						0,
-						$elm$core$String$toFloat(f.J)),
-					K: A2(
-						$elm$core$Maybe$withDefault,
-						0,
-						$elm$core$String$toFloat(f.K)),
-					L: f.L,
-					N: A2(
-						$elm$core$Maybe$withDefault,
-						0,
-						$elm$core$String$toFloat(f.N)),
-					O: f.O,
-					P: A2(
-						$elm$core$Maybe$withDefault,
-						0,
-						$elm$core$String$toFloat(f.P)),
-					R: A2(
-						$elm$core$Maybe$withDefault,
-						0,
-						$elm$core$String$toFloat(f.R))
-				};
+				var delta = msg.a;
+				var f = model.c;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{A: true}),
-					$author$project$Main$submitEntry(newEntry));
+						{
+							c: _Utils_update(
+								f,
+								{t: f.t + delta})
+						}),
+					$elm$core$Platform$Cmd$none);
 			case 5:
-				var result = msg.a;
-				if (!result.$) {
-					var lastPayPerHour = model.a.R;
+				var f = model.c;
+				var dateStr = $author$project$Main$daysToDateString(f.t);
+				var maybeEntry = A3(
+					$elm$core$Maybe$map2,
+					F2(
+						function (checking, creditAvailable) {
+							return {
+								K: checking,
+								L: creditAvailable,
+								M: dateStr,
+								N: A2(
+									$elm$core$Maybe$withDefault,
+									0,
+									$elm$core$String$toFloat(f.N)),
+								O: f.O,
+								P: A2(
+									$elm$core$Maybe$withDefault,
+									0,
+									$elm$core$String$toFloat(f.P)),
+								R: A2(
+									$elm$core$Maybe$withDefault,
+									0,
+									$elm$core$String$toFloat(f.R))
+							};
+						}),
+					$elm$core$String$toFloat(f.K),
+					$elm$core$String$toFloat(f.L));
+				if (!maybeEntry.$) {
+					var newEntry = maybeEntry.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{m: $elm$core$Maybe$Nothing, A: true}),
+						$author$project$Main$submitEntry(newEntry));
+				} else {
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
-								a: A2($author$project$Main$emptyForm, model.w, lastPayPerHour),
+								m: $elm$core$Maybe$Just('Checking and Credit Available are required')
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 6:
+				var result = msg.a;
+				if (!result.$) {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								c: $author$project$Main$emptyForm(model.S),
 								A: false
 							}),
 						$author$project$Main$fetchData);
@@ -6578,13 +6870,13 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{
-								s: $elm$core$Maybe$Just(
+								m: $elm$core$Maybe$Just(
 									$author$project$Main$httpErrorToString(err)),
 								A: false
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
-			case 6:
+			case 7:
 				var entryId = msg.a;
 				return _Utils_Tuple2(
 					model,
@@ -6599,7 +6891,7 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{
-								s: $elm$core$Maybe$Just(
+								m: $elm$core$Maybe$Just(
 									$author$project$Main$httpErrorToString(err))
 							}),
 						$elm$core$Platform$Cmd$none);
@@ -6613,14 +6905,41 @@ var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$Checking = 1;
-var $author$project$Main$CreditAvailable = 2;
-var $author$project$Main$Date = 0;
-var $author$project$Main$HoursWorked = 3;
-var $author$project$Main$Note = 6;
-var $author$project$Main$OtherIncoming = 5;
-var $author$project$Main$PayPerHour = 4;
-var $author$project$Main$SubmitEntry = {$: 4};
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $author$project$Main$viewCalculated = function (_v0) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'background', '#252542'),
+				A2($elm$html$Html$Attributes$style, 'padding', '15px'),
+				A2($elm$html$Html$Attributes$style, 'border-radius', '12px'),
+				A2($elm$html$Html$Attributes$style, 'margin-bottom', '20px')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h2,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'font-weight', '300'),
+						A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
+						A2($elm$html$Html$Attributes$style, 'margin', '0 0 10px 0'),
+						A2($elm$html$Html$Attributes$style, 'color', '#888')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Calculated')
+					]))
+			]));
+};
+var $author$project$Main$Checking = 0;
+var $author$project$Main$CreditAvailable = 1;
+var $author$project$Main$HoursWorked = 2;
+var $author$project$Main$Note = 5;
+var $author$project$Main$OtherIncoming = 4;
+var $author$project$Main$PayPerHour = 3;
+var $author$project$Main$SubmitEntry = {$: 5};
 var $author$project$Main$UpdateForm = F2(
 	function (a, b) {
 		return {$: 3, a: a, b: b};
@@ -6731,6 +7050,102 @@ var $author$project$Main$viewCompactField = F5(
 					_List_Nil)
 				]));
 	});
+var $author$project$Main$AdjustDate = function (a) {
+	return {$: 4, a: a};
+};
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $author$project$Main$viewDatePicker = function (dateDays) {
+	var dateStr = $author$project$Main$daysToDateString(dateDays);
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'flex-direction', 'column')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$label,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'font-size', '0.7em'),
+						A2($elm$html$Html$Attributes$style, 'color', '#888'),
+						A2($elm$html$Html$Attributes$style, 'margin-bottom', '3px')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('Date')
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
+						A2($elm$html$Html$Attributes$style, 'gap', '5px')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Main$AdjustDate(-1)),
+								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
+								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
+								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
+								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
+								A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
+								A2($elm$html$Html$Attributes$style, 'cursor', 'pointer')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('-')
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
+								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
+								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
+								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
+								A2($elm$html$Html$Attributes$style, 'font-size', '0.9em'),
+								A2($elm$html$Html$Attributes$style, 'min-width', '100px'),
+								A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(dateStr)
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick(
+								$author$project$Main$AdjustDate(1)),
+								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
+								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
+								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
+								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
+								A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
+								A2($elm$html$Html$Attributes$style, 'cursor', 'pointer')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('+')
+							]))
+					]))
+			]));
+};
 var $author$project$Main$viewEntryForm = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -6754,54 +7169,48 @@ var $author$project$Main$viewEntryForm = function (model) {
 					]),
 				_List_fromArray(
 					[
-						A5(
-						$author$project$Main$viewCompactField,
-						'Date',
-						'date',
-						model.a.L,
-						$author$project$Main$UpdateForm(0),
-						'100px'),
+						$author$project$Main$viewDatePicker(model.c.t),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Checking',
 						'number',
-						model.a.J,
-						$author$project$Main$UpdateForm(1),
+						model.c.K,
+						$author$project$Main$UpdateForm(0),
 						'90px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Credit Avail',
 						'number',
-						model.a.K,
-						$author$project$Main$UpdateForm(2),
+						model.c.L,
+						$author$project$Main$UpdateForm(1),
 						'90px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Hours',
 						'number',
-						model.a.N,
-						$author$project$Main$UpdateForm(3),
+						model.c.N,
+						$author$project$Main$UpdateForm(2),
 						'70px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'$/hr',
 						'number',
-						model.a.R,
-						$author$project$Main$UpdateForm(4),
+						model.c.R,
+						$author$project$Main$UpdateForm(3),
 						'70px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Other $',
 						'number',
-						model.a.P,
-						$author$project$Main$UpdateForm(5),
+						model.c.P,
+						$author$project$Main$UpdateForm(4),
 						'80px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Note',
 						'text',
-						model.a.O,
-						$author$project$Main$UpdateForm(6),
+						model.c.O,
+						$author$project$Main$UpdateForm(5),
 						'120px'),
 						A2(
 						$elm$html$Html$button,
@@ -6826,7 +7235,6 @@ var $author$project$Main$viewEntryForm = function (model) {
 					]))
 			]));
 };
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$core$List$isEmpty = function (xs) {
 	if (!xs.b) {
 		return true;
@@ -6961,7 +7369,7 @@ var $elm$core$List$take = F2(
 		return A3($elm$core$List$takeFast, 0, n, list);
 	});
 var $author$project$Main$DeleteEntry = function (a) {
-	return {$: 6, a: a};
+	return {$: 7, a: a};
 };
 var $elm$core$Basics$round = _Basics_round;
 var $author$project$Main$formatAmount = function (amount) {
@@ -6970,8 +7378,6 @@ var $author$project$Main$formatAmount = function (amount) {
 	var decStr = (decPart < 10) ? ('0' + $elm$core$String$fromInt(decPart)) : $elm$core$String$fromInt(decPart);
 	return $elm$core$String$fromInt(intPart) + ('.' + decStr);
 };
-var $elm$core$Basics$neq = _Utils_notEqual;
-var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Main$viewRecentEntry = function (entry) {
 	return A2(
 		$elm$html$Html$div,
@@ -7007,7 +7413,7 @@ var $author$project$Main$viewRecentEntry = function (entry) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(entry.L)
+								$elm$html$Html$text(entry.M)
 							])),
 						A2(
 						$elm$html$Html$span,
@@ -7015,7 +7421,7 @@ var $author$project$Main$viewRecentEntry = function (entry) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								'Chk: $' + $author$project$Main$formatAmount(entry.J))
+								'Chk: $' + $author$project$Main$formatAmount(entry.K))
 							])),
 						A2(
 						$elm$html$Html$span,
@@ -7023,7 +7429,7 @@ var $author$project$Main$viewRecentEntry = function (entry) {
 						_List_fromArray(
 							[
 								$elm$html$Html$text(
-								'Crd: $' + $author$project$Main$formatAmount(entry.K))
+								'Crd: $' + $author$project$Main$formatAmount(entry.L))
 							])),
 						(entry.N > 0) ? A2(
 						$elm$html$Html$span,
@@ -7064,7 +7470,7 @@ var $author$project$Main$viewRecentEntry = function (entry) {
 				_List_fromArray(
 					[
 						$elm$html$Html$Events$onClick(
-						$author$project$Main$DeleteEntry(entry.aj)),
+						$author$project$Main$DeleteEntry(entry.al)),
 						A2($elm$html$Html$Attributes$style, 'background', 'transparent'),
 						A2($elm$html$Html$Attributes$style, 'border', 'none'),
 						A2($elm$html$Html$Attributes$style, 'color', '#ff6b6b'),
@@ -7128,7 +7534,7 @@ var $author$project$Main$viewEntryPage = function (model) {
 					[
 						$elm$html$Html$text('Data Entry')
 					])),
-				model.E ? A2(
+				model.F ? A2(
 				$elm$html$Html$p,
 				_List_Nil,
 				_List_fromArray(
@@ -7140,10 +7546,11 @@ var $author$project$Main$viewEntryPage = function (model) {
 				_List_fromArray(
 					[
 						$author$project$Main$viewEntryForm(model),
-						$author$project$Main$viewRecentEntries(model.M)
+						$author$project$Main$viewRecentEntries(model.D),
+						$author$project$Main$viewCalculated(model.D)
 					])),
 				function () {
-				var _v0 = model.s;
+				var _v0 = model.m;
 				if (!_v0.$) {
 					var err = _v0.a;
 					return A2(
@@ -7262,20 +7669,20 @@ var $author$project$Main$viewBody = function (model) {
 };
 var $author$project$Main$view = function (model) {
 	return {
-		S: _List_fromArray(
+		T: _List_fromArray(
 			[
 				$author$project$Main$viewBody(model)
 			]),
-		a1: 'Finance Tracker'
+		a4: 'Finance Tracker'
 	};
 };
 var $author$project$Main$main = $elm$browser$Browser$application(
-	{aP: $author$project$Main$init, aS: $author$project$Main$UrlChanged, aT: $author$project$Main$LinkClicked, a$: $author$project$Main$subscriptions, a3: $author$project$Main$update, a4: $author$project$Main$view});
+	{aS: $author$project$Main$init, aV: $author$project$Main$UrlChanged, aW: $author$project$Main$LinkClicked, a2: $author$project$Main$subscriptions, a6: $author$project$Main$update, a7: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
 	A2(
 		$elm$json$Json$Decode$andThen,
 		function (today) {
 			return $elm$json$Json$Decode$succeed(
-				{w: today});
+				{ab: today});
 		},
 		A2($elm$json$Json$Decode$field, 'today', $elm$json$Json$Decode$string)))(0)}});}(this));
