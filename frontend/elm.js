@@ -7190,34 +7190,6 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 				_List_fromArray(
 					[
 						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
-								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
-								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
-								A2($elm$html$Html$Attributes$style, 'border-radius', '4px 0 0 4px'),
-								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
-								A2($elm$html$Html$Attributes$style, 'font-size', '0.9em'),
-								A2($elm$html$Html$Attributes$style, 'min-width', '100px'),
-								A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-							]),
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										A2($elm$html$Html$Attributes$style, 'color', '#fff'),
-										A2($elm$html$Html$Attributes$style, 'font-weight', 'bold')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(weekday)
-									])),
-								$elm$html$Html$text(' ' + dateStr)
-							])),
-						A2(
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
@@ -7235,7 +7207,7 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 										A2($elm$html$Html$Attributes$style, 'padding', '2px 8px'),
 										A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
 										A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
-										A2($elm$html$Html$Attributes$style, 'border-radius', '0 4px 0 0'),
+										A2($elm$html$Html$Attributes$style, 'border-radius', '4px 0 0 0'),
 										A2($elm$html$Html$Attributes$style, 'color', '#eee'),
 										A2($elm$html$Html$Attributes$style, 'font-size', '0.7em'),
 										A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
@@ -7255,7 +7227,7 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 										A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
 										A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
 										A2($elm$html$Html$Attributes$style, 'border-top', 'none'),
-										A2($elm$html$Html$Attributes$style, 'border-radius', '0 0 4px 0'),
+										A2($elm$html$Html$Attributes$style, 'border-radius', '0 0 0 4px'),
 										A2($elm$html$Html$Attributes$style, 'color', '#eee'),
 										A2($elm$html$Html$Attributes$style, 'font-size', '0.7em'),
 										A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
@@ -7265,6 +7237,34 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 									[
 										$elm$html$Html$text('▼')
 									]))
+							])),
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'padding', '8px 12px'),
+								A2($elm$html$Html$Attributes$style, 'background', '#1a1a2e'),
+								A2($elm$html$Html$Attributes$style, 'border', '1px solid #333'),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '0 4px 4px 0'),
+								A2($elm$html$Html$Attributes$style, 'color', '#eee'),
+								A2($elm$html$Html$Attributes$style, 'font-size', '0.9em'),
+								A2($elm$html$Html$Attributes$style, 'min-width', '100px'),
+								A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										A2($elm$html$Html$Attributes$style, 'color', '#fff'),
+										A2($elm$html$Html$Attributes$style, 'font-weight', 'bold')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(weekday)
+									])),
+								$elm$html$Html$text(' ' + dateStr)
 							]))
 					]))
 			]));
