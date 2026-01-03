@@ -7606,6 +7606,27 @@ var $author$project$Main$formatAmount = function (amount) {
 	var decStr = (decPart < 10) ? ('0' + $elm$core$String$fromInt(decPart)) : $elm$core$String$fromInt(decPart);
 	return $elm$core$String$fromInt(intPart) + ('.' + decStr);
 };
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
 var $elm$core$Basics$min = F2(
 	function (x, y) {
 		return (_Utils_cmp(x, y) < 0) ? x : y;
@@ -7642,16 +7663,6 @@ var $elm$core$List$filter = F2(
 			list);
 	});
 var $elm$core$Basics$ge = _Utils_ge;
-var $elm$core$List$maximum = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(
-			A3($elm$core$List$foldl, $elm$core$Basics$max, x, xs));
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
 var $elm$core$List$sortBy = _List_sortBy;
 var $author$project$Calculations$sundayOfWeek = function (days) {
 	var dayOfWeek = A2($elm$core$Basics$modBy, 7, days);
@@ -7675,61 +7686,18 @@ var $author$project$Calculations$incomingPayForEntry = F2(
 						targetDays) < 1;
 				},
 				allEntries));
-		var mostRecentCashedDay = $elm$core$List$maximum(
-			A2(
-				$elm$core$List$map,
-				function (e) {
-					return $author$project$Calculations$dateToDays(e.ao);
-				},
-				A2(
-					$elm$core$List$filter,
-					function ($) {
-						return $.ax;
-					},
-					entriesUpToTarget)));
 		var currentWeekSunday = $author$project$Calculations$sundayOfWeek(targetDays);
-		var previousWeekSunday = currentWeekSunday - 7;
-		var startDay = function () {
-			if (!mostRecentCashedDay.$) {
-				var cashedDay = mostRecentCashedDay.a;
-				return cashedDay;
-			} else {
-				return previousWeekSunday;
-			}
-		}();
-		var relevantEntries = A2(
-			$elm$core$List$sortBy,
-			function ($) {
-				return $.ao;
+		var hasPayCashedInCurrentWeek = A2(
+			$elm$core$List$any,
+			function (e) {
+				var eDays = $author$project$Calculations$dateToDays(e.ao);
+				return e.ax && ((_Utils_cmp(eDays, currentWeekSunday) > -1) && (_Utils_cmp(eDays, targetDays) < 1));
 			},
-			A2(
-				$elm$core$List$filter,
-				function (e) {
-					return _Utils_cmp(
-						$author$project$Calculations$dateToDays(e.ao),
-						startDay) > -1;
-				},
-				entriesUpToTarget));
+			entriesUpToTarget);
+		var previousWeekSunday = currentWeekSunday - 7;
 		var previousWeekPay = function () {
-			if (!mostRecentCashedDay.$) {
-				var cashedDay = mostRecentCashedDay.a;
-				if (_Utils_cmp(cashedDay, currentWeekSunday) > -1) {
-					return 0;
-				} else {
-					var prevWeekEntries = A2(
-						$elm$core$List$sortBy,
-						function ($) {
-							return $.ao;
-						},
-						A2(
-							$elm$core$List$filter,
-							function (e) {
-								var eDays = $author$project$Calculations$dateToDays(e.ao);
-								return (_Utils_cmp(eDays, cashedDay) > -1) && (_Utils_cmp(eDays, currentWeekSunday) < 0);
-							},
-							relevantEntries));
-					return A2($author$project$Calculations$calculateWeekPayWithOvertime, prevWeekEntries, payPerHour);
-				}
+			if (hasPayCashedInCurrentWeek) {
+				return 0;
 			} else {
 				var prevWeekEntries = A2(
 					$elm$core$List$sortBy,
@@ -7742,7 +7710,7 @@ var $author$project$Calculations$incomingPayForEntry = F2(
 							var eDays = $author$project$Calculations$dateToDays(e.ao);
 							return (_Utils_cmp(eDays, previousWeekSunday) > -1) && (_Utils_cmp(eDays, currentWeekSunday) < 0);
 						},
-						relevantEntries));
+						entriesUpToTarget));
 				return A2($author$project$Calculations$calculateWeekPayWithOvertime, prevWeekEntries, payPerHour);
 			}
 		}();
@@ -7758,7 +7726,7 @@ var $author$project$Calculations$incomingPayForEntry = F2(
 						$author$project$Calculations$dateToDays(e.ao),
 						currentWeekSunday) > -1;
 				},
-				relevantEntries));
+				entriesUpToTarget));
 		var currentWeekPay = A2($author$project$Calculations$calculateWeekPayWithOvertime, currentWeekEntries, payPerHour);
 		return (currentWeekPay + previousWeekPay) * taxMultiplier;
 	});

@@ -48,10 +48,14 @@ suite =
                 \_ ->
                     Expect.equal "Wed" (dayOfWeekName (dateToDays "2025-01-01"))
             ]
-        , describe "Pay cashed scenario"
-            [ test "Same scenario - viewing 12/28 row (before payCashed exists)" <|
+        , describe "Pay cashed scenario - payCashed means previous week is paid, count only current week"
+            [ test "12/28 (Sat) - no payCashed in week 12/22-12/28, count current + previous week" <|
                 \_ ->
                     let
+                        -- 12/28 is Saturday, its week is 12/22 (Sun) - 12/28 (Sat)
+                        -- Previous week is 12/15-12/21
+                        -- No payCashed anywhere, so count both weeks
+                        -- Only entry in range is 12/28 itself = 2h * $10 = $20
                         entries =
                             [ makeEntry 1 "2024-12-28" 2 10 False
                             , makeEntry 2 "2024-12-29" 2 10 False
@@ -59,21 +63,17 @@ suite =
                             , makeEntry 4 "2025-01-02" 1 10 False
                             , makeEntry 5 "2025-01-03" 1 10 False
                             ]
-
-                        -- Target: the 12/28 row
                         targetEntry = makeEntry 1 "2024-12-28" 2 10 False
-
-                        -- On 12/28, we can only see entries up to 12/28
-                        -- 12/28 is Saturday. Sunday of that week is 12/22.
-                        -- No payCashed in current week (12/22-12/28), so we also count previous week (12/15-12/21)
-                        -- But there are no entries in those weeks except 12/28 itself
-                        -- So incoming = 2 hours * $10 = $20
                         incomingPay = incomingPayForEntry targetEntry entries
                     in
                     Expect.within (Expect.Absolute 0.01) 20 incomingPay
-            , test "Same scenario - viewing 12/29 row" <|
+            , test "12/29 (Sun) - no payCashed yet in week 12/29-1/4, count current + previous week" <|
                 \_ ->
                     let
+                        -- 12/29 is Sunday, starts new week 12/29-1/4
+                        -- Previous week is 12/22-12/28 (has 12/28 entry with 2h)
+                        -- No payCashed visible yet (1/1 is in the future relative to 12/29)
+                        -- Count: previous week (12/28 = 2h) + current week (12/29 = 2h) = 4h * $10 = $40
                         entries =
                             [ makeEntry 1 "2024-12-28" 2 10 False
                             , makeEntry 2 "2024-12-29" 2 10 False
@@ -81,20 +81,16 @@ suite =
                             , makeEntry 4 "2025-01-02" 1 10 False
                             , makeEntry 5 "2025-01-03" 1 10 False
                             ]
-
-                        -- Target: the 12/29 row
                         targetEntry = makeEntry 2 "2024-12-29" 2 10 False
-
-                        -- On 12/29 (Sunday), current week starts 12/29
-                        -- Previous week is 12/22-12/28
-                        -- No payCashed visible yet (1/1 is in the future)
-                        -- So we count: previous week (12/28 = 2h) + current week (12/29 = 2h) = 4h * $10 = $40
                         incomingPay = incomingPayForEntry targetEntry entries
                     in
                     Expect.within (Expect.Absolute 0.01) 40 incomingPay
-            , test "Same scenario - viewing 1/1 row (the one with payCashed)" <|
+            , test "1/1 (Wed) with payCashed - current week has payCashed, count ONLY current week from Sunday" <|
                 \_ ->
                     let
+                        -- 1/1 is Wednesday, week is 12/29-1/4
+                        -- payCashed=true on 1/1 means: previous week (12/22-12/28) is PAID
+                        -- So count only current week: 12/29 (2h) + 1/1 (1h) = 3h * $10 = $30
                         entries =
                             [ makeEntry 1 "2024-12-28" 2 10 False
                             , makeEntry 2 "2024-12-29" 2 10 False
@@ -102,52 +98,43 @@ suite =
                             , makeEntry 4 "2025-01-02" 1 10 False
                             , makeEntry 5 "2025-01-03" 1 10 False
                             ]
-
-                        -- Target: the 1/1 row (has payCashed=true)
                         targetEntry = makeEntry 3 "2025-01-01" 1 10 True
-
-                        -- payCashed on 1/1 means: only count hours FROM 1/1 onward
-                        -- So incoming = just 1/1 (1h) = $10
-                        incomingPay = incomingPayForEntry targetEntry entries
-                    in
-                    Expect.within (Expect.Absolute 0.01) 10 incomingPay
-            , test "Same scenario - viewing 1/2 row (day after payCashed)" <|
-                \_ ->
-                    let
-                        entries =
-                            [ makeEntry 1 "2024-12-28" 2 10 False
-                            , makeEntry 2 "2024-12-29" 2 10 False
-                            , makeEntry 3 "2025-01-01" 1 10 True
-                            , makeEntry 4 "2025-01-02" 1 10 False
-                            , makeEntry 5 "2025-01-03" 1 10 False
-                            ]
-
-                        -- Target: the 1/2 row
-                        targetEntry = makeEntry 4 "2025-01-02" 1 10 False
-
-                        -- payCashed on 1/1 means: only count hours FROM 1/1 onward
-                        -- So incoming = 1/1 (1h) + 1/2 (1h) = 2h * $10 = $20
-                        incomingPay = incomingPayForEntry targetEntry entries
-                    in
-                    Expect.within (Expect.Absolute 0.01) 20 incomingPay
-            , test "Same scenario - viewing 1/3 row" <|
-                \_ ->
-                    let
-                        entries =
-                            [ makeEntry 1 "2024-12-28" 2 10 False
-                            , makeEntry 2 "2024-12-29" 2 10 False
-                            , makeEntry 3 "2025-01-01" 1 10 True
-                            , makeEntry 4 "2025-01-02" 1 10 False
-                            , makeEntry 5 "2025-01-03" 1 10 False
-                            ]
-
-                        -- Target: the 1/3 row
-                        targetEntry = makeEntry 5 "2025-01-03" 1 10 False
-
-                        -- payCashed on 1/1 means: only count hours FROM 1/1 onward
-                        -- So incoming = 1/1 (1h) + 1/2 (1h) + 1/3 (1h) = 3h * $10 = $30
                         incomingPay = incomingPayForEntry targetEntry entries
                     in
                     Expect.within (Expect.Absolute 0.01) 30 incomingPay
+            , test "1/2 (Thu) - payCashed exists earlier in week, count ONLY current week from Sunday" <|
+                \_ ->
+                    let
+                        -- 1/2 is Thursday, week is 12/29-1/4
+                        -- payCashed=true on 1/1 (earlier in this week)
+                        -- Count only current week: 12/29 (2h) + 1/1 (1h) + 1/2 (1h) = 4h * $10 = $40
+                        entries =
+                            [ makeEntry 1 "2024-12-28" 2 10 False
+                            , makeEntry 2 "2024-12-29" 2 10 False
+                            , makeEntry 3 "2025-01-01" 1 10 True
+                            , makeEntry 4 "2025-01-02" 1 10 False
+                            , makeEntry 5 "2025-01-03" 1 10 False
+                            ]
+                        targetEntry = makeEntry 4 "2025-01-02" 1 10 False
+                        incomingPay = incomingPayForEntry targetEntry entries
+                    in
+                    Expect.within (Expect.Absolute 0.01) 40 incomingPay
+            , test "1/3 (Fri) - payCashed exists earlier in week, count ONLY current week from Sunday" <|
+                \_ ->
+                    let
+                        -- 1/3 is Friday, week is 12/29-1/4
+                        -- payCashed=true on 1/1 (earlier in this week)
+                        -- Count only current week: 12/29 (2h) + 1/1 (1h) + 1/2 (1h) + 1/3 (1h) = 5h * $10 = $50
+                        entries =
+                            [ makeEntry 1 "2024-12-28" 2 10 False
+                            , makeEntry 2 "2024-12-29" 2 10 False
+                            , makeEntry 3 "2025-01-01" 1 10 True
+                            , makeEntry 4 "2025-01-02" 1 10 False
+                            , makeEntry 5 "2025-01-03" 1 10 False
+                            ]
+                        targetEntry = makeEntry 5 "2025-01-03" 1 10 False
+                        incomingPay = incomingPayForEntry targetEntry entries
+                    in
+                    Expect.within (Expect.Absolute 0.01) 50 incomingPay
             ]
         ]

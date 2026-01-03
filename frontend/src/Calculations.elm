@@ -194,13 +194,14 @@ sundayOfWeek days =
 {-| Calculate incoming pay as of a specific entry's date.
 
 Algorithm:
-1. Find the most recent entry with payCashed=true that's on or before target date
-2. If found: start counting from that payCashed day (inclusive)
-3. If not found: count current week + previous week (max 2 weeks)
-4. For each week, iterate through days chronologically, tracking:
+1. Find Sunday of the target entry's week (current week)
+2. Check if ANY entry from Sunday to target date (inclusive) has payCashed=true
+3. If payCashed found in current week: count ONLY current week (from Sunday)
+4. If NO payCashed in current week: count current week + previous week
+5. For each week, apply Alaska overtime rules:
    - Regular hours (capped at 8/day, 40/week)
    - Overtime hours (daily >8 OR weekly >40, at 1.5x)
-5. Apply tax multiplier (placeholder, currently 1.0)
+6. Apply tax multiplier (placeholder, currently 1.0)
 -}
 incomingPayForEntry : Entry -> List Entry -> Float
 incomingPayForEntry targetEntry allEntries =
@@ -218,77 +219,42 @@ incomingPayForEntry targetEntry allEntries =
                 |> List.filter (\e -> dateToDays e.date <= targetDays)
                 |> List.sortBy .date
 
-        -- Find the most recent payCashed entry (on or before target date)
-        mostRecentCashedDay =
+        -- Check if ANY entry in current week (Sunday to target date) has payCashed=true
+        hasPayCashedInCurrentWeek =
             entriesUpToTarget
-                |> List.filter .payCashed
-                |> List.map (\e -> dateToDays e.date)
-                |> List.maximum
-
-        -- Determine start day for counting
-        startDay =
-            case mostRecentCashedDay of
-                Just cashedDay ->
-                    -- Start from the day pay was cashed (inclusive)
-                    cashedDay
-
-                Nothing ->
-                    -- No payCashed found, count current + previous week
-                    previousWeekSunday
-
-        -- Get entries from startDay to targetDay
-        relevantEntries =
-            entriesUpToTarget
-                |> List.filter (\e -> dateToDays e.date >= startDay)
-                |> List.sortBy .date
+                |> List.any (\e ->
+                    let eDays = dateToDays e.date
+                    in e.payCashed && eDays >= currentWeekSunday && eDays <= targetDays
+                )
 
         -- Get pay rate from target entry
         payPerHour = targetEntry.payPerHour
 
-        -- Calculate pay with overtime
-        -- We need to process week by week for proper overtime calculation
-        -- Group by week, then calculate each week separately
-
-        -- Current week entries
+        -- Current week entries (from Sunday to target date)
         currentWeekEntries =
-            relevantEntries
+            entriesUpToTarget
                 |> List.filter (\e -> dateToDays e.date >= currentWeekSunday)
                 |> List.sortBy .date
 
         currentWeekPay = calculateWeekPayWithOvertime currentWeekEntries payPerHour
 
-        -- Previous week entries (only if we're counting them)
+        -- Previous week entries (only if no payCashed in current week)
         previousWeekPay =
-            case mostRecentCashedDay of
-                Just cashedDay ->
-                    if cashedDay >= currentWeekSunday then
-                        -- payCashed is in current week, don't count previous week
-                        0
-                    else
-                        -- payCashed is in previous week, count from that day
-                        let
-                            prevWeekEntries =
-                                relevantEntries
-                                    |> List.filter (\e ->
-                                        let eDays = dateToDays e.date
-                                        in eDays >= cashedDay && eDays < currentWeekSunday
-                                    )
-                                    |> List.sortBy .date
-                        in
-                        calculateWeekPayWithOvertime prevWeekEntries payPerHour
-
-                Nothing ->
-                    -- No payCashed, count full previous week
-                    let
-                        prevWeekEntries =
-                            relevantEntries
-                                |> List.filter (\e ->
-                                    let eDays = dateToDays e.date
-                                    in eDays >= previousWeekSunday && eDays < currentWeekSunday
-                                )
-                                |> List.sortBy .date
-                    in
-                    calculateWeekPayWithOvertime prevWeekEntries payPerHour
+            if hasPayCashedInCurrentWeek then
+                -- payCashed in current week means previous week is paid, don't count it
+                0
+            else
+                -- No payCashed in current week, count previous week too
+                let
+                    prevWeekEntries =
+                        entriesUpToTarget
+                            |> List.filter (\e ->
+                                let eDays = dateToDays e.date
+                                in eDays >= previousWeekSunday && eDays < currentWeekSunday
+                            )
+                            |> List.sortBy .date
+                in
+                calculateWeekPayWithOvertime prevWeekEntries payPerHour
     in
     (currentWeekPay + previousWeekPay) * taxMultiplier
 
