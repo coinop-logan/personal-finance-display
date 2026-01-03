@@ -171,18 +171,37 @@ dateToWeekNumber days =
     (days + 1) // 7
 
 
+{-| Get the Sunday (first day) of the week containing the given day -}
+sundayOfWeek : Int -> Int
+sundayOfWeek days =
+    -- 2000-01-01 (day 0) was Saturday
+    -- So: 0=Sat, 1=Sun, 2=Mon, ...
+    -- To get Sunday: subtract (dayOfWeek - 1), but handle Saturday specially
+    let
+        dayOfWeek = modBy 7 days  -- 0=Sat, 1=Sun, 2=Mon, etc.
+    in
+    if dayOfWeek == 0 then
+        -- Saturday: Sunday is tomorrow, but we want *previous* Sunday
+        days - 6
+    else
+        -- Sunday=1, Mon=2, etc. Subtract (dayOfWeek - 1) to get to Sunday
+        days - (dayOfWeek - 1)
+
+
 -- INCOMING PAY CALCULATIONS
 
 
 {-| Calculate incoming pay as of a specific entry's date.
 
-For entry E in week N:
-- Look at all entries from week N and earlier
-- Exclude any week W where a week > W has payCashed = true
-- Apply overtime rules to remaining weeks
-- Sum up the pay
-
-This gives "how much pay is owed as of this entry's date"
+Algorithm:
+1. Find Sunday of the row's week (start of current pay period)
+2. Check if any day from that Sunday up to the row's date has payCashed=true
+   - If yes: only count current week's hours
+   - If no: count current week + previous week's hours
+3. For each week, iterate through days chronologically, tracking:
+   - Regular hours (capped at 8/day, 40/week)
+   - Overtime hours (daily >8 OR weekly >40, at 1.5x)
+4. Apply tax multiplier (placeholder, currently 1.0)
 -}
 incomingPayForEntry : Entry -> List Entry -> Float
 incomingPayForEntry targetEntry allEntries =
@@ -190,106 +209,104 @@ incomingPayForEntry targetEntry allEntries =
         -- Tax multiplier placeholder: 1.0 means no tax deducted
         taxMultiplier = 1.0
 
-        targetWeek = dateToWeekNumber (dateToDays targetEntry.date)
+        targetDays = dateToDays targetEntry.date
+        currentWeekSunday = sundayOfWeek targetDays
+        previousWeekSunday = currentWeekSunday - 7
 
-        -- Get all entries up to and including the target entry's week
+        -- Get entries up to and including the target date, sorted by date
         entriesUpToTarget =
             allEntries
-                |> List.filter (\e -> dateToWeekNumber (dateToDays e.date) <= targetWeek)
+                |> List.filter (\e -> dateToDays e.date <= targetDays)
+                |> List.sortBy .date
 
-        -- Find the most recent week (up to targetWeek) that has been "cashed out"
-        -- A week W is cashed if any entry in week > W has payCashed = true
-        -- So we look for payCashed entries in weeks > each candidate week
-        mostRecentCashedWeek =
+        -- Check if any day in current week (from Sunday to target date) has payCashed=true
+        currentWeekHasCashed =
             entriesUpToTarget
-                |> List.filter .payCashed
-                |> List.map (\e -> dateToWeekNumber (dateToDays e.date) - 1)  -- payCashed in week N means week N-1 is cashed
-                |> List.maximum
-                |> Maybe.withDefault -1
-
-        -- Filter to entries in weeks AFTER the most recently cashed week
-        uncashedEntries =
-            entriesUpToTarget
-                |> List.filter (\e -> dateToWeekNumber (dateToDays e.date) > mostRecentCashedWeek)
-
-        -- Group entries by week for overtime calculation
-        weeklyGroups = groupByWeek uncashedEntries
-
-        -- Calculate pay for each week with overtime
-        weeklyPay = List.map calculateWeekPay weeklyGroups
-    in
-    List.sum weeklyPay * taxMultiplier
-
-
-{-| Group entries by week number -}
-groupByWeek : List Entry -> List (List Entry)
-groupByWeek entries =
-    let
-        weekNumbers =
-            entries
-                |> List.map (\e -> dateToWeekNumber (dateToDays e.date))
-                |> uniqueInts
-    in
-    weekNumbers
-        |> List.map (\wn ->
-            List.filter (\e -> dateToWeekNumber (dateToDays e.date) == wn) entries
-        )
-
-
-uniqueInts : List Int -> List Int
-uniqueInts list =
-    List.foldr
-        (\x acc ->
-            if List.member x acc then
-                acc
-            else
-                x :: acc
-        )
-        []
-        list
-
-
-{-| Calculate pay for a single week with Alaska overtime rules.
-Overtime: >8 hours/day OR >40 hours/week = 1.5x
--}
-calculateWeekPay : List Entry -> Float
-calculateWeekPay weekEntries =
-    let
-        -- First, calculate daily overtime for each day
-        dailyResults =
-            weekEntries
-                |> List.map (\entry ->
+                |> List.any (\e ->
                     let
-                        regularHours = min entry.hoursWorked 8
-                        dailyOvertimeHours = max 0 (entry.hoursWorked - 8)
+                        eDays = dateToDays e.date
                     in
-                    { entry = entry
-                    , regularHours = regularHours
-                    , dailyOvertimeHours = dailyOvertimeHours
-                    }
+                    eDays >= currentWeekSunday && eDays <= targetDays && e.payCashed
                 )
 
-        -- Sum up regular hours (after daily overtime removed)
-        totalRegularHours = List.sum (List.map .regularHours dailyResults)
+        -- Determine which weeks to count
+        -- If current week has a cashed entry, only count current week
+        -- Otherwise, count current week + previous week
+        startDay =
+            if currentWeekHasCashed then
+                currentWeekSunday
+            else
+                previousWeekSunday
 
-        -- Sum up daily overtime hours
-        totalDailyOvertimeHours = List.sum (List.map .dailyOvertimeHours dailyResults)
+        -- Get entries in the range we're counting
+        relevantEntries =
+            entriesUpToTarget
+                |> List.filter (\e -> dateToDays e.date >= startDay)
 
-        -- Check for weekly overtime (>40 regular hours)
-        weeklyRegularHours = min totalRegularHours 40
-        weeklyOvertimeHours = max 0 (totalRegularHours - 40)
+        -- Get pay rate from target entry (or most recent entry with a rate)
+        payPerHour = targetEntry.payPerHour
 
-        -- Total overtime = daily overtime + weekly overtime
-        totalOvertimeHours = totalDailyOvertimeHours + weeklyOvertimeHours
+        -- Calculate pay for current week
+        currentWeekEntries =
+            relevantEntries
+                |> List.filter (\e -> dateToDays e.date >= currentWeekSunday)
+                |> List.sortBy .date
 
-        -- Final regular hours
-        finalRegularHours = weeklyRegularHours
+        currentWeekPay = calculateWeekPayWithOvertime currentWeekEntries payPerHour
 
-        -- Get pay rate (use first entry's rate, or 0 if empty)
-        payPerHour =
-            weekEntries
-                |> List.head
-                |> Maybe.map .payPerHour
-                |> Maybe.withDefault 0
+        -- Calculate pay for previous week (if we're counting it)
+        previousWeekPay =
+            if currentWeekHasCashed then
+                0
+            else
+                let
+                    prevWeekEntries =
+                        relevantEntries
+                            |> List.filter (\e ->
+                                let eDays = dateToDays e.date
+                                in eDays >= previousWeekSunday && eDays < currentWeekSunday
+                            )
+                            |> List.sortBy .date
+                in
+                calculateWeekPayWithOvertime prevWeekEntries payPerHour
     in
-    (finalRegularHours * payPerHour) + (totalOvertimeHours * payPerHour * 1.5)
+    (currentWeekPay + previousWeekPay) * taxMultiplier
+
+
+{-| Calculate pay for a week with Alaska overtime rules.
+
+Iterates through days chronologically, tracking:
+- Daily overtime: any hours over 8 in a single day
+- Weekly overtime: once regular hours hit 40, additional regular hours become overtime
+
+Note: Overtime hours do NOT count toward the 40-hour weekly threshold.
+-}
+calculateWeekPayWithOvertime : List Entry -> Float -> Float
+calculateWeekPayWithOvertime entries payPerHour =
+    let
+        -- Process each day, accumulating regular and overtime hours
+        processDay : Entry -> { regular : Float, overtime : Float } -> { regular : Float, overtime : Float }
+        processDay entry acc =
+            let
+                hoursToday = entry.hoursWorked
+
+                -- Daily overtime: hours over 8
+                dailyRegular = min hoursToday 8
+                dailyOvertime = max 0 (hoursToday - 8)
+
+                -- Check if adding dailyRegular would exceed 40 weekly regular hours
+                regularRoomLeft = max 0 (40 - acc.regular)
+                regularToAdd = min dailyRegular regularRoomLeft
+                weeklyOverflowToOvertime = dailyRegular - regularToAdd
+
+                -- Total overtime for this day = daily overtime + any weekly overflow
+                totalOvertimeToday = dailyOvertime + weeklyOverflowToOvertime
+            in
+            { regular = acc.regular + regularToAdd
+            , overtime = acc.overtime + totalOvertimeToday
+            }
+
+        result =
+            List.foldl processDay { regular = 0, overtime = 0 } entries
+    in
+    (result.regular * payPerHour) + (result.overtime * payPerHour * 1.5)
