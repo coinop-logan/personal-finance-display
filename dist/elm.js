@@ -519,11 +519,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.ab.E === region.aj.E)
+	if (region.ab.D === region.aj.D)
 	{
-		return 'on line ' + region.ab.E;
+		return 'on line ' + region.ab.D;
 	}
-	return 'on lines ' + region.ab.E + ' through ' + region.aj.E;
+	return 'on lines ' + region.ab.D + ' through ' + region.aj.D;
 }
 
 
@@ -5375,16 +5375,16 @@ var $elm$browser$Browser$application = _Browser_application;
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $elm$core$Basics$neq = _Utils_notEqual;
-var $author$project$Main$isLeapYear = function (year) {
+var $author$project$Calculations$isLeapYear = function (year) {
 	return (!A2($elm$core$Basics$modBy, 4, year)) && ((!(!A2($elm$core$Basics$modBy, 100, year))) || (!A2($elm$core$Basics$modBy, 400, year)));
 };
-var $author$project$Main$daysInMonth = F2(
+var $author$project$Calculations$daysInMonth = F2(
 	function (year, month) {
 		switch (month) {
 			case 1:
 				return 31;
 			case 2:
-				return $author$project$Main$isLeapYear(year) ? 29 : 28;
+				return $author$project$Calculations$isLeapYear(year) ? 29 : 28;
 			case 3:
 				return 31;
 			case 4:
@@ -5412,20 +5412,20 @@ var $author$project$Main$daysInMonth = F2(
 var $elm$core$List$sum = function (numbers) {
 	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
 };
-var $author$project$Main$daysBeforeMonth = F2(
+var $author$project$Calculations$daysBeforeMonth = F2(
 	function (year, month) {
 		return $elm$core$List$sum(
 			A2(
 				$elm$core$List$map,
-				$author$project$Main$daysInMonth(year),
+				$author$project$Calculations$daysInMonth(year),
 				A2($elm$core$List$range, 1, month - 1)));
 	});
-var $author$project$Main$daysSinceEpoch = F3(
+var $author$project$Calculations$daysSinceEpoch = F3(
 	function (year, month, day) {
 		var y = year - 2000;
 		var leapYears = ((y + 3) / 4) | 0;
 		var daysInPriorYears = (y * 365) + leapYears;
-		var daysInPriorMonths = A2($author$project$Main$daysBeforeMonth, year, month);
+		var daysInPriorMonths = A2($author$project$Calculations$daysBeforeMonth, year, month);
 		return ((daysInPriorYears + daysInPriorMonths) + day) - 1;
 	});
 var $elm$core$Maybe$map3 = F4(
@@ -5448,7 +5448,7 @@ var $elm$core$Maybe$map3 = F4(
 			}
 		}
 	});
-var $author$project$Main$parseDate = function (str) {
+var $author$project$Calculations$parseDate = function (str) {
 	var _v0 = A2($elm$core$String$split, '-', str);
 	if (((_v0.b && _v0.b.b) && _v0.b.b.b) && (!_v0.b.b.b.b)) {
 		var yearStr = _v0.a;
@@ -5469,20 +5469,20 @@ var $author$project$Main$parseDate = function (str) {
 		return $elm$core$Maybe$Nothing;
 	}
 };
-var $author$project$Main$dateToDays = function (dateStr) {
-	var _v0 = $author$project$Main$parseDate(dateStr);
+var $author$project$Calculations$dateToDays = function (dateStr) {
+	var _v0 = $author$project$Calculations$parseDate(dateStr);
 	if (!_v0.$) {
 		var _v1 = _v0.a;
 		var year = _v1.a;
 		var month = _v1.b;
 		var day = _v1.c;
-		return A3($author$project$Main$daysSinceEpoch, year, month, day);
+		return A3($author$project$Calculations$daysSinceEpoch, year, month, day);
 	} else {
 		return 0;
 	}
 };
 var $author$project$Main$emptyForm = function (todayDays) {
-	return {K: '', L: '', t: todayDays, N: '', O: '', P: '', R: false, S: '', T: ''};
+	return {J: '', K: '', t: todayDays, N: '', O: '', P: '', R: false, S: '', T: ''};
 };
 var $author$project$Main$GotData = function (a) {
 	return {$: 0, a: a};
@@ -5497,7 +5497,7 @@ var $author$project$Api$Types$Entry = function (id) {
 							return function (personalDebt) {
 								return function (note) {
 									return function (payCashed) {
-										return {K: checking, L: creditAvailable, M: date, N: hoursWorked, ao: id, O: note, P: otherIncoming, R: payCashed, S: payPerHour, T: personalDebt};
+										return {J: checking, K: creditAvailable, L: date, N: hoursWorked, ao: id, O: note, P: otherIncoming, R: payCashed, S: payPerHour, T: personalDebt};
 									};
 								};
 							};
@@ -6394,14 +6394,14 @@ var $author$project$Main$urlToPage = function (url) {
 };
 var $author$project$Main$init = F3(
 	function (flags, url, key) {
-		var todayDays = $author$project$Main$dateToDays(flags.ad);
+		var todayDays = $author$project$Calculations$dateToDays(flags.ad);
 		return _Utils_Tuple2(
 			{
-				D: _List_Nil,
+				M: _List_Nil,
 				m: $elm$core$Maybe$Nothing,
 				a: $author$project$Main$emptyForm(todayDays),
 				X: key,
-				F: true,
+				E: true,
 				Q: $author$project$Main$urlToPage(url),
 				A: false,
 				U: todayDays
@@ -6413,12 +6413,12 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
-var $author$project$Main$findYear = F2(
+var $author$project$Calculations$findYear = F2(
 	function (year, totalDays) {
 		findYear:
 		while (true) {
 			if (_Utils_cmp(
-				A3($author$project$Main$daysSinceEpoch, year + 1, 1, 1),
+				A3($author$project$Calculations$daysSinceEpoch, year + 1, 1, 1),
 				totalDays) < 1) {
 				var $temp$year = year + 1,
 					$temp$totalDays = totalDays;
@@ -6427,7 +6427,7 @@ var $author$project$Main$findYear = F2(
 				continue findYear;
 			} else {
 				if (_Utils_cmp(
-					A3($author$project$Main$daysSinceEpoch, year, 1, 1),
+					A3($author$project$Calculations$daysSinceEpoch, year, 1, 1),
 					totalDays) > 0) {
 					var $temp$year = year - 1,
 						$temp$totalDays = totalDays;
@@ -6440,11 +6440,11 @@ var $author$project$Main$findYear = F2(
 			}
 		}
 	});
-var $author$project$Main$findMonth = F3(
+var $author$project$Calculations$findMonth = F3(
 	function (year, month, remainingDays) {
 		findMonth:
 		while (true) {
-			var daysInThisMonth = A2($author$project$Main$daysInMonth, year, month);
+			var daysInThisMonth = A2($author$project$Calculations$daysInMonth, year, month);
 			if (_Utils_cmp(remainingDays, daysInThisMonth) < 1) {
 				return _Utils_Tuple2(month, remainingDays);
 			} else {
@@ -6458,15 +6458,15 @@ var $author$project$Main$findMonth = F3(
 			}
 		}
 	});
-var $author$project$Main$monthAndDayFromDayOfYear = F2(
+var $author$project$Calculations$monthAndDayFromDayOfYear = F2(
 	function (year, dayOfYear) {
-		return A3($author$project$Main$findMonth, year, 1, dayOfYear);
+		return A3($author$project$Calculations$findMonth, year, 1, dayOfYear);
 	});
-var $author$project$Main$dateFromDays = function (totalDays) {
+var $author$project$Calculations$dateFromDays = function (totalDays) {
 	var approxYear = 2000 + (((totalDays * 400) / 146097) | 0);
-	var year = A2($author$project$Main$findYear, approxYear, totalDays);
-	var dayOfYear = totalDays - A3($author$project$Main$daysSinceEpoch, year, 1, 1);
-	var _v0 = A2($author$project$Main$monthAndDayFromDayOfYear, year, dayOfYear + 1);
+	var year = A2($author$project$Calculations$findYear, approxYear, totalDays);
+	var dayOfYear = totalDays - A3($author$project$Calculations$daysSinceEpoch, year, 1, 1);
+	var _v0 = A2($author$project$Calculations$monthAndDayFromDayOfYear, year, dayOfYear + 1);
 	var month = _v0.a;
 	var day = _v0.b;
 	return _Utils_Tuple3(year, month, day);
@@ -6498,7 +6498,7 @@ var $elm$core$String$padLeft = F3(
 				$elm$core$String$fromChar(_char)),
 			string);
 	});
-var $author$project$Main$formatDate = F3(
+var $author$project$Calculations$formatDate = F3(
 	function (year, month, day) {
 		return $elm$core$String$fromInt(year) + ('-' + (A3(
 			$elm$core$String$padLeft,
@@ -6510,12 +6510,12 @@ var $author$project$Main$formatDate = F3(
 			'0',
 			$elm$core$String$fromInt(day)))));
 	});
-var $author$project$Main$daysToDateString = function (days) {
-	var _v0 = $author$project$Main$dateFromDays(days);
+var $author$project$Calculations$daysToDateString = function (days) {
+	var _v0 = $author$project$Calculations$dateFromDays(days);
 	var year = _v0.a;
 	var month = _v0.b;
 	var day = _v0.c;
-	return A3($author$project$Main$formatDate, year, month, day);
+	return A3($author$project$Calculations$formatDate, year, month, day);
 };
 var $author$project$Main$DeleteResult = function (a) {
 	return {$: 9, a: a};
@@ -6553,8 +6553,8 @@ var $elm$core$String$fromFloat = _String_fromNumber;
 var $author$project$Main$formFromLastEntry = F2(
 	function (todayDays, entry) {
 		return {
+			J: $elm$core$String$fromFloat(entry.J),
 			K: $elm$core$String$fromFloat(entry.K),
-			L: $elm$core$String$fromFloat(entry.L),
 			t: todayDays,
 			N: '',
 			O: '',
@@ -6652,13 +6652,13 @@ var $author$project$Api$Types$newEntryEncoder = function (struct) {
 			[
 				_Utils_Tuple2(
 				'date',
-				$elm$json$Json$Encode$string(struct.M)),
+				$elm$json$Json$Encode$string(struct.L)),
 				_Utils_Tuple2(
 				'checking',
-				$elm$json$Json$Encode$float(struct.K)),
+				$elm$json$Json$Encode$float(struct.J)),
 				_Utils_Tuple2(
 				'creditAvailable',
-				$elm$json$Json$Encode$float(struct.L)),
+				$elm$json$Json$Encode$float(struct.K)),
 				_Utils_Tuple2(
 				'hoursWorked',
 				$elm$json$Json$Encode$float(struct.N)),
@@ -6753,11 +6753,11 @@ var $author$project$Main$update = F2(
 				var result = msg.a;
 				if (!result.$) {
 					var entries = result.a;
-					var updatedForm = (model.a.K === '') ? A2($author$project$Main$formFromEntries, model.U, entries) : model.a;
+					var updatedForm = (model.a.J === '') ? A2($author$project$Main$formFromEntries, model.U, entries) : model.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{D: entries, m: $elm$core$Maybe$Nothing, a: updatedForm, F: false}),
+							{M: entries, m: $elm$core$Maybe$Nothing, a: updatedForm, E: false}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var err = result.a;
@@ -6767,7 +6767,7 @@ var $author$project$Main$update = F2(
 							{
 								m: $elm$core$Maybe$Just(
 									$author$project$Main$httpErrorToString(err)),
-								F: false
+								E: false
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
@@ -6805,11 +6805,11 @@ var $author$project$Main$update = F2(
 						case 0:
 							return _Utils_update(
 								f,
-								{K: val});
+								{J: val});
 						case 1:
 							return _Utils_update(
 								f,
-								{L: val});
+								{K: val});
 						case 2:
 							return _Utils_update(
 								f,
@@ -6862,15 +6862,15 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$none);
 			case 6:
 				var f = model.a;
-				var dateStr = $author$project$Main$daysToDateString(f.t);
+				var dateStr = $author$project$Calculations$daysToDateString(f.t);
 				var maybeEntry = A3(
 					$elm$core$Maybe$map2,
 					F2(
 						function (checking, creditAvailable) {
 							return {
-								K: checking,
-								L: creditAvailable,
-								M: dateStr,
+								J: checking,
+								K: creditAvailable,
+								L: dateStr,
 								N: A2(
 									$elm$core$Maybe$withDefault,
 									0,
@@ -6891,8 +6891,8 @@ var $author$project$Main$update = F2(
 									$elm$core$String$toFloat(f.T))
 							};
 						}),
-					$elm$core$String$toFloat(f.K),
-					$elm$core$String$toFloat(f.L));
+					$elm$core$String$toFloat(f.J),
+					$elm$core$String$toFloat(f.K));
 				if (!maybeEntry.$) {
 					var newEntry = maybeEntry.a;
 					return _Utils_Tuple2(
@@ -6961,263 +6961,6 @@ var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (!maybe.$) {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$core$Basics$min = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) < 0) ? x : y;
-	});
-var $author$project$Main$calculateWeekPay = function (weekEntries) {
-	var payPerHour = A2(
-		$elm$core$Maybe$withDefault,
-		0,
-		A2(
-			$elm$core$Maybe$map,
-			function ($) {
-				return $.S;
-			},
-			$elm$core$List$head(weekEntries)));
-	var dailyResults = A2(
-		$elm$core$List$map,
-		function (entry) {
-			var regularHours = A2($elm$core$Basics$min, entry.N, 8);
-			var dailyOvertimeHours = A2($elm$core$Basics$max, 0, entry.N - 8);
-			return {ah: dailyOvertimeHours, aR: entry, ay: regularHours};
-		},
-		weekEntries);
-	var totalDailyOvertimeHours = $elm$core$List$sum(
-		A2(
-			$elm$core$List$map,
-			function ($) {
-				return $.ah;
-			},
-			dailyResults));
-	var totalRegularHours = $elm$core$List$sum(
-		A2(
-			$elm$core$List$map,
-			function ($) {
-				return $.ay;
-			},
-			dailyResults));
-	var weeklyOvertimeHours = A2($elm$core$Basics$max, 0, totalRegularHours - 40);
-	var totalOvertimeHours = totalDailyOvertimeHours + weeklyOvertimeHours;
-	var weeklyRegularHours = A2($elm$core$Basics$min, totalRegularHours, 40);
-	var finalRegularHours = weeklyRegularHours;
-	return (finalRegularHours * payPerHour) + ((totalOvertimeHours * payPerHour) * 1.5);
-};
-var $author$project$Main$dateToWeekNumber = function (days) {
-	return ((days + 1) / 7) | 0;
-};
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var $elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
-		while (true) {
-			if (!list.b) {
-				return false;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
-				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
-				}
-			}
-		}
-	});
-var $elm$core$List$member = F2(
-	function (x, xs) {
-		return A2(
-			$elm$core$List$any,
-			function (a) {
-				return _Utils_eq(a, x);
-			},
-			xs);
-	});
-var $author$project$Main$uniqueInts = function (list) {
-	return A3(
-		$elm$core$List$foldr,
-		F2(
-			function (x, acc) {
-				return A2($elm$core$List$member, x, acc) ? acc : A2($elm$core$List$cons, x, acc);
-			}),
-		_List_Nil,
-		list);
-};
-var $author$project$Main$groupByWeek = function (entries) {
-	var weekNumbers = $author$project$Main$uniqueInts(
-		A2(
-			$elm$core$List$map,
-			function (e) {
-				return $author$project$Main$dateToWeekNumber(
-					$author$project$Main$dateToDays(e.M));
-			},
-			entries));
-	return A2(
-		$elm$core$List$map,
-		function (wn) {
-			return A2(
-				$elm$core$List$filter,
-				function (e) {
-					return _Utils_eq(
-						$author$project$Main$dateToWeekNumber(
-							$author$project$Main$dateToDays(e.M)),
-						wn);
-				},
-				entries);
-		},
-		weekNumbers);
-};
-var $elm$core$List$maximum = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(
-			A3($elm$core$List$foldl, $elm$core$Basics$max, x, xs));
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $elm$core$List$sortBy = _List_sortBy;
-var $author$project$Main$calculateIncomingPay = function (entries) {
-	var taxMultiplier = 1.0;
-	var sortedEntries = A2(
-		$elm$core$List$sortBy,
-		function ($) {
-			return $.M;
-		},
-		entries);
-	var mostRecentCashedWeek = A2(
-		$elm$core$Maybe$withDefault,
-		-1,
-		$elm$core$List$maximum(
-			A2(
-				$elm$core$List$map,
-				function (e) {
-					return $author$project$Main$dateToWeekNumber(
-						$author$project$Main$dateToDays(e.M));
-				},
-				A2(
-					$elm$core$List$filter,
-					function ($) {
-						return $.R;
-					},
-					sortedEntries))));
-	var uncashedEntries = A2(
-		$elm$core$List$filter,
-		function (e) {
-			return _Utils_cmp(
-				$author$project$Main$dateToWeekNumber(
-					$author$project$Main$dateToDays(e.M)),
-				mostRecentCashedWeek) > 0;
-		},
-		sortedEntries);
-	var weeklyGroups = $author$project$Main$groupByWeek(uncashedEntries);
-	var weeklyPay = A2($elm$core$List$map, $author$project$Main$calculateWeekPay, weeklyGroups);
-	return $elm$core$List$sum(weeklyPay) * taxMultiplier;
-};
-var $elm$core$Basics$round = _Basics_round;
-var $author$project$Main$formatAmount = function (amount) {
-	var intPart = $elm$core$Basics$floor(amount);
-	var decPart = $elm$core$Basics$round((amount - intPart) * 100);
-	var decStr = (decPart < 10) ? ('0' + $elm$core$String$fromInt(decPart)) : $elm$core$String$fromInt(decPart);
-	return $elm$core$String$fromInt(intPart) + ('.' + decStr);
-};
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $author$project$Main$viewCalculated = function (entries) {
-	var incomingPay = $author$project$Main$calculateIncomingPay(entries);
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				A2($elm$html$Html$Attributes$style, 'background', '#252542'),
-				A2($elm$html$Html$Attributes$style, 'padding', '15px'),
-				A2($elm$html$Html$Attributes$style, 'border-radius', '12px'),
-				A2($elm$html$Html$Attributes$style, 'margin-bottom', '20px')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$h2,
-				_List_fromArray(
-					[
-						A2($elm$html$Html$Attributes$style, 'font-weight', '300'),
-						A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
-						A2($elm$html$Html$Attributes$style, 'margin', '0 0 10px 0'),
-						A2($elm$html$Html$Attributes$style, 'color', '#888')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('Calculated')
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-						A2($elm$html$Html$Attributes$style, 'gap', '20px'),
-						A2($elm$html$Html$Attributes$style, 'flex-wrap', 'wrap')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$div,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										A2($elm$html$Html$Attributes$style, 'color', '#888')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Incoming Pay: ')
-									])),
-								A2(
-								$elm$html$Html$span,
-								_List_fromArray(
-									[
-										A2($elm$html$Html$Attributes$style, 'color', '#4ade80'),
-										A2($elm$html$Html$Attributes$style, 'font-size', '1.2em')
-									]),
-								_List_fromArray(
-									[
-										$elm$html$Html$text(
-										'$' + $author$project$Main$formatAmount(incomingPay))
-									]))
-							]))
-					]))
-			]));
-};
 var $author$project$Main$Checking = 0;
 var $author$project$Main$CreditAvailable = 1;
 var $author$project$Main$HoursWorked = 2;
@@ -7387,8 +7130,12 @@ var $author$project$Main$viewCompactField = F5(
 var $author$project$Main$AdjustDate = function (a) {
 	return {$: 4, a: a};
 };
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Main$viewDatePicker = function (dateDays) {
-	var dateStr = $author$project$Main$daysToDateString(dateDays);
+	var dateStr = $author$project$Calculations$daysToDateString(dateDays);
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -7517,14 +7264,14 @@ var $author$project$Main$viewEntryForm = function (model) {
 						$author$project$Main$viewCompactField,
 						'Checking',
 						'number',
-						model.a.K,
+						model.a.J,
 						$author$project$Main$UpdateForm(0),
 						'90px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Credit Avail',
 						'number',
-						model.a.L,
+						model.a.K,
 						$author$project$Main$UpdateForm(1),
 						'90px'),
 						A5(
@@ -7586,6 +7333,7 @@ var $author$project$Main$viewEntryForm = function (model) {
 					]))
 			]));
 };
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
 var $elm$core$List$isEmpty = function (xs) {
 	if (!xs.b) {
 		return true;
@@ -7722,116 +7470,362 @@ var $elm$core$List$take = F2(
 var $author$project$Main$DeleteEntry = function (a) {
 	return {$: 8, a: a};
 };
-var $author$project$Main$viewRecentEntry = function (entry) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-				A2($elm$html$Html$Attributes$style, 'justify-content', 'space-between'),
-				A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
-				A2($elm$html$Html$Attributes$style, 'padding', '10px'),
-				A2($elm$html$Html$Attributes$style, 'background', '#252542'),
-				A2($elm$html$Html$Attributes$style, 'border-radius', '6px'),
-				A2($elm$html$Html$Attributes$style, 'margin-bottom', '8px'),
-				A2($elm$html$Html$Attributes$style, 'font-size', '0.85em')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-						A2($elm$html$Html$Attributes$style, 'gap', '15px'),
-						A2($elm$html$Html$Attributes$style, 'flex-wrap', 'wrap'),
-						A2($elm$html$Html$Attributes$style, 'flex', '1')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								A2($elm$html$Html$Attributes$style, 'color', '#888')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(entry.M)
-							])),
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								'Chk: $' + $author$project$Main$formatAmount(entry.K))
-							])),
-						A2(
-						$elm$html$Html$span,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								'Crd: $' + $author$project$Main$formatAmount(entry.L))
-							])),
-						(entry.N > 0) ? A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								A2($elm$html$Html$Attributes$style, 'color', '#4ade80')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								$author$project$Main$formatAmount(entry.N) + ('h @ $' + $author$project$Main$formatAmount(entry.S)))
-							])) : $elm$html$Html$text(''),
-						(entry.P > 0) ? A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								A2($elm$html$Html$Attributes$style, 'color', '#4ade80')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								'+$' + $author$project$Main$formatAmount(entry.P))
-							])) : $elm$html$Html$text(''),
-						(entry.O !== '') ? A2(
-						$elm$html$Html$span,
-						_List_fromArray(
-							[
-								A2($elm$html$Html$Attributes$style, 'color', '#888'),
-								A2($elm$html$Html$Attributes$style, 'font-style', 'italic')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text(entry.O)
-							])) : $elm$html$Html$text('')
-					])),
-				A2(
-				$elm$html$Html$button,
-				_List_fromArray(
-					[
-						$elm$html$Html$Events$onClick(
-						$author$project$Main$DeleteEntry(entry.ao)),
-						A2($elm$html$Html$Attributes$style, 'background', 'transparent'),
-						A2($elm$html$Html$Attributes$style, 'border', 'none'),
-						A2($elm$html$Html$Attributes$style, 'color', '#ff6b6b'),
-						A2($elm$html$Html$Attributes$style, 'font-size', '1.2em'),
-						A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
-						A2($elm$html$Html$Attributes$style, 'padding', '0 5px')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('X')
-					]))
-			]));
+var $elm$core$Basics$round = _Basics_round;
+var $author$project$Main$formatAmount = function (amount) {
+	var intPart = $elm$core$Basics$floor(amount);
+	var decPart = $elm$core$Basics$round((amount - intPart) * 100);
+	var decStr = (decPart < 10) ? ('0' + $elm$core$String$fromInt(decPart)) : $elm$core$String$fromInt(decPart);
+	return $elm$core$String$fromInt(intPart) + ('.' + decStr);
 };
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (!maybe.$) {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Basics$min = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) < 0) ? x : y;
+	});
+var $author$project$Calculations$calculateWeekPay = function (weekEntries) {
+	var payPerHour = A2(
+		$elm$core$Maybe$withDefault,
+		0,
+		A2(
+			$elm$core$Maybe$map,
+			function ($) {
+				return $.S;
+			},
+			$elm$core$List$head(weekEntries)));
+	var dailyResults = A2(
+		$elm$core$List$map,
+		function (entry) {
+			var regularHours = A2($elm$core$Basics$min, entry.N, 8);
+			var dailyOvertimeHours = A2($elm$core$Basics$max, 0, entry.N - 8);
+			return {ah: dailyOvertimeHours, aR: entry, ay: regularHours};
+		},
+		weekEntries);
+	var totalDailyOvertimeHours = $elm$core$List$sum(
+		A2(
+			$elm$core$List$map,
+			function ($) {
+				return $.ah;
+			},
+			dailyResults));
+	var totalRegularHours = $elm$core$List$sum(
+		A2(
+			$elm$core$List$map,
+			function ($) {
+				return $.ay;
+			},
+			dailyResults));
+	var weeklyOvertimeHours = A2($elm$core$Basics$max, 0, totalRegularHours - 40);
+	var totalOvertimeHours = totalDailyOvertimeHours + weeklyOvertimeHours;
+	var weeklyRegularHours = A2($elm$core$Basics$min, totalRegularHours, 40);
+	var finalRegularHours = weeklyRegularHours;
+	return (finalRegularHours * payPerHour) + ((totalOvertimeHours * payPerHour) * 1.5);
+};
+var $author$project$Calculations$dateToWeekNumber = function (days) {
+	return ((days + 1) / 7) | 0;
+};
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $author$project$Calculations$uniqueInts = function (list) {
+	return A3(
+		$elm$core$List$foldr,
+		F2(
+			function (x, acc) {
+				return A2($elm$core$List$member, x, acc) ? acc : A2($elm$core$List$cons, x, acc);
+			}),
+		_List_Nil,
+		list);
+};
+var $author$project$Calculations$groupByWeek = function (entries) {
+	var weekNumbers = $author$project$Calculations$uniqueInts(
+		A2(
+			$elm$core$List$map,
+			function (e) {
+				return $author$project$Calculations$dateToWeekNumber(
+					$author$project$Calculations$dateToDays(e.L));
+			},
+			entries));
+	return A2(
+		$elm$core$List$map,
+		function (wn) {
+			return A2(
+				$elm$core$List$filter,
+				function (e) {
+					return _Utils_eq(
+						$author$project$Calculations$dateToWeekNumber(
+							$author$project$Calculations$dateToDays(e.L)),
+						wn);
+				},
+				entries);
+		},
+		weekNumbers);
+};
+var $elm$core$List$maximum = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(
+			A3($elm$core$List$foldl, $elm$core$Basics$max, x, xs));
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Calculations$incomingPayForEntry = F2(
+	function (targetEntry, allEntries) {
+		var taxMultiplier = 1.0;
+		var targetWeek = $author$project$Calculations$dateToWeekNumber(
+			$author$project$Calculations$dateToDays(targetEntry.L));
+		var entriesUpToTarget = A2(
+			$elm$core$List$filter,
+			function (e) {
+				return _Utils_cmp(
+					$author$project$Calculations$dateToWeekNumber(
+						$author$project$Calculations$dateToDays(e.L)),
+					targetWeek) < 1;
+			},
+			allEntries);
+		var mostRecentCashedWeek = A2(
+			$elm$core$Maybe$withDefault,
+			-1,
+			$elm$core$List$maximum(
+				A2(
+					$elm$core$List$map,
+					function (e) {
+						return $author$project$Calculations$dateToWeekNumber(
+							$author$project$Calculations$dateToDays(e.L)) - 1;
+					},
+					A2(
+						$elm$core$List$filter,
+						function ($) {
+							return $.R;
+						},
+						entriesUpToTarget))));
+		var uncashedEntries = A2(
+			$elm$core$List$filter,
+			function (e) {
+				return _Utils_cmp(
+					$author$project$Calculations$dateToWeekNumber(
+						$author$project$Calculations$dateToDays(e.L)),
+					mostRecentCashedWeek) > 0;
+			},
+			entriesUpToTarget);
+		var weeklyGroups = $author$project$Calculations$groupByWeek(uncashedEntries);
+		var weeklyPay = A2($elm$core$List$map, $author$project$Calculations$calculateWeekPay, weeklyGroups);
+		return $elm$core$List$sum(weeklyPay) * taxMultiplier;
+	});
+var $author$project$Main$viewRecentEntry = F2(
+	function (allEntries, entry) {
+		var incomingPay = A2($author$project$Calculations$incomingPayForEntry, entry, allEntries);
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+					A2($elm$html$Html$Attributes$style, 'flex-direction', 'column'),
+					A2($elm$html$Html$Attributes$style, 'padding', '10px'),
+					A2($elm$html$Html$Attributes$style, 'background', '#252542'),
+					A2($elm$html$Html$Attributes$style, 'border-radius', '6px'),
+					A2($elm$html$Html$Attributes$style, 'margin-bottom', '8px'),
+					A2($elm$html$Html$Attributes$style, 'font-size', '0.85em')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+							A2($elm$html$Html$Attributes$style, 'justify-content', 'space-between'),
+							A2($elm$html$Html$Attributes$style, 'align-items', 'center')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+									A2($elm$html$Html$Attributes$style, 'gap', '15px'),
+									A2($elm$html$Html$Attributes$style, 'flex-wrap', 'wrap'),
+									A2($elm$html$Html$Attributes$style, 'flex', '1')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											A2($elm$html$Html$Attributes$style, 'color', '#888')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(entry.L)
+										])),
+									A2(
+									$elm$html$Html$span,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											'Chk: $' + $author$project$Main$formatAmount(entry.J))
+										])),
+									A2(
+									$elm$html$Html$span,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											'Crd: $' + $author$project$Main$formatAmount(entry.K))
+										])),
+									(entry.N > 0) ? A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											A2($elm$html$Html$Attributes$style, 'color', '#4ade80')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											$author$project$Main$formatAmount(entry.N) + ('h @ $' + $author$project$Main$formatAmount(entry.S)))
+										])) : $elm$html$Html$text(''),
+									(entry.P > 0) ? A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											A2($elm$html$Html$Attributes$style, 'color', '#4ade80')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											'+$' + $author$project$Main$formatAmount(entry.P))
+										])) : $elm$html$Html$text(''),
+									entry.R ? A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											A2($elm$html$Html$Attributes$style, 'color', '#fbbf24')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('[Cashed]')
+										])) : $elm$html$Html$text(''),
+									(entry.O !== '') ? A2(
+									$elm$html$Html$span,
+									_List_fromArray(
+										[
+											A2($elm$html$Html$Attributes$style, 'color', '#888'),
+											A2($elm$html$Html$Attributes$style, 'font-style', 'italic')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(entry.O)
+										])) : $elm$html$Html$text('')
+								])),
+							A2(
+							$elm$html$Html$button,
+							_List_fromArray(
+								[
+									$elm$html$Html$Events$onClick(
+									$author$project$Main$DeleteEntry(entry.ao)),
+									A2($elm$html$Html$Attributes$style, 'background', 'transparent'),
+									A2($elm$html$Html$Attributes$style, 'border', 'none'),
+									A2($elm$html$Html$Attributes$style, 'color', '#ff6b6b'),
+									A2($elm$html$Html$Attributes$style, 'font-size', '1.2em'),
+									A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
+									A2($elm$html$Html$Attributes$style, 'padding', '0 5px')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('X')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'margin-top', '5px'),
+							A2($elm$html$Html$Attributes$style, 'padding-top', '5px'),
+							A2($elm$html$Html$Attributes$style, 'border-top', '1px solid #333')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'color', '#888'),
+									A2($elm$html$Html$Attributes$style, 'font-size', '0.9em')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Incoming: ')
+								])),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'color', '#4ade80'),
+									A2($elm$html$Html$Attributes$style, 'font-weight', '500')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									'$' + $author$project$Main$formatAmount(incomingPay))
+								]))
+						]))
+				]));
+	});
 var $author$project$Main$viewRecentEntries = function (entries) {
 	var recent = A2(
 		$elm$core$List$take,
-		3,
+		5,
 		$elm$core$List$reverse(entries));
 	return $elm$core$List$isEmpty(recent) ? $elm$html$Html$text('') : A2(
 		$elm$html$Html$div,
@@ -7857,7 +7851,10 @@ var $author$project$Main$viewRecentEntries = function (entries) {
 				A2(
 				$elm$html$Html$div,
 				_List_Nil,
-				A2($elm$core$List$map, $author$project$Main$viewRecentEntry, recent))
+				A2(
+					$elm$core$List$map,
+					$author$project$Main$viewRecentEntry(entries),
+					recent))
 			]));
 };
 var $author$project$Main$viewEntryPage = function (model) {
@@ -7878,7 +7875,7 @@ var $author$project$Main$viewEntryPage = function (model) {
 					[
 						$elm$html$Html$text('Data Entry')
 					])),
-				model.F ? A2(
+				model.E ? A2(
 				$elm$html$Html$p,
 				_List_Nil,
 				_List_fromArray(
@@ -7890,8 +7887,7 @@ var $author$project$Main$viewEntryPage = function (model) {
 				_List_fromArray(
 					[
 						$author$project$Main$viewEntryForm(model),
-						$author$project$Main$viewRecentEntries(model.D),
-						$author$project$Main$viewCalculated(model.D)
+						$author$project$Main$viewRecentEntries(model.M)
 					])),
 				function () {
 				var _v0 = model.m;

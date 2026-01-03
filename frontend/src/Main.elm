@@ -3,6 +3,7 @@ module Main exposing (main)
 import Api.Types exposing (Entry, NewEntry, entryDecoder, newEntryEncoder)
 import Browser
 import Browser.Navigation as Nav
+import Calculations exposing (dateToDays, daysToDateString, incomingPayForEntry)
 import Html exposing (Html, div, text, h1, h2, p, input, button, label, span)
 import Html.Attributes exposing (style, type_, value, placeholder, step, id, checked)
 import Html.Events exposing (onInput, onClick)
@@ -94,25 +95,6 @@ formFromEntries todayDays entries =
         Nothing ->
             emptyForm todayDays
 
-
--- Convert date string "YYYY-MM-DD" to days since epoch
-dateToDays : String -> Int
-dateToDays dateStr =
-    case parseDate dateStr of
-        Just ( year, month, day ) ->
-            daysSinceEpoch year month day
-
-        Nothing ->
-            0  -- fallback, shouldn't happen with valid input
-
-
--- Convert days since epoch back to "YYYY-MM-DD" string
-daysToDateString : Int -> String
-daysToDateString days =
-    let
-        ( year, month, day ) = dateFromDays days
-    in
-    formatDate year month day
 
 urlToPage : Url -> Page
 urlToPage url =
@@ -305,110 +287,6 @@ httpErrorToString err =
             "Bad response: " ++ body
 
 
--- DATE HELPERS
-
-parseDate : String -> Maybe ( Int, Int, Int )
-parseDate str =
-    case String.split "-" str of
-        [ yearStr, monthStr, dayStr ] ->
-            Maybe.map3 (\y m d -> ( y, m, d ))
-                (String.toInt yearStr)
-                (String.toInt monthStr)
-                (String.toInt dayStr)
-
-        _ ->
-            Nothing
-
-
-formatDate : Int -> Int -> Int -> String
-formatDate year month day =
-    String.fromInt year
-        ++ "-"
-        ++ String.padLeft 2 '0' (String.fromInt month)
-        ++ "-"
-        ++ String.padLeft 2 '0' (String.fromInt day)
-
-
--- Days since epoch (2000-01-01 = day 0)
-daysSinceEpoch : Int -> Int -> Int -> Int
-daysSinceEpoch year month day =
-    let
-        y = year - 2000
-        leapYears = (y + 3) // 4
-        daysInPriorYears = y * 365 + leapYears
-        daysInPriorMonths = daysBeforeMonth year month
-    in
-    daysInPriorYears + daysInPriorMonths + day - 1
-
-
-dateFromDays : Int -> ( Int, Int, Int )
-dateFromDays totalDays =
-    let
-        -- Approximate year
-        approxYear = 2000 + (totalDays * 400) // 146097
-        year = findYear approxYear totalDays
-        dayOfYear = totalDays - daysSinceEpoch year 1 1
-        ( month, day ) = monthAndDayFromDayOfYear year (dayOfYear + 1)
-    in
-    ( year, month, day )
-
-
-findYear : Int -> Int -> Int
-findYear year totalDays =
-    if daysSinceEpoch (year + 1) 1 1 <= totalDays then
-        findYear (year + 1) totalDays
-    else if daysSinceEpoch year 1 1 > totalDays then
-        findYear (year - 1) totalDays
-    else
-        year
-
-
-monthAndDayFromDayOfYear : Int -> Int -> ( Int, Int )
-monthAndDayFromDayOfYear year dayOfYear =
-    findMonth year 1 dayOfYear
-
-
-findMonth : Int -> Int -> Int -> ( Int, Int )
-findMonth year month remainingDays =
-    let
-        daysInThisMonth = daysInMonth year month
-    in
-    if remainingDays <= daysInThisMonth then
-        ( month, remainingDays )
-    else
-        findMonth year (month + 1) (remainingDays - daysInThisMonth)
-
-
-daysBeforeMonth : Int -> Int -> Int
-daysBeforeMonth year month =
-    List.range 1 (month - 1)
-        |> List.map (daysInMonth year)
-        |> List.sum
-
-
-daysInMonth : Int -> Int -> Int
-daysInMonth year month =
-    case month of
-        1 -> 31
-        2 -> if isLeapYear year then 29 else 28
-        3 -> 31
-        4 -> 30
-        5 -> 31
-        6 -> 30
-        7 -> 31
-        8 -> 31
-        9 -> 30
-        10 -> 31
-        11 -> 30
-        12 -> 31
-        _ -> 30
-
-
-isLeapYear : Int -> Bool
-isLeapYear year =
-    (modBy 4 year == 0) && (modBy 100 year /= 0 || modBy 400 year == 0)
-
-
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
@@ -504,7 +382,6 @@ viewEntryPage model =
             div []
                 [ viewEntryForm model
                 , viewRecentEntries model.entries
-                , viewCalculated model.entries
                 ]
         , case model.error of
             Just err ->
@@ -662,7 +539,7 @@ viewCheckbox labelText isChecked toggleMsg =
 viewRecentEntries : List Entry -> Html Msg
 viewRecentEntries entries =
     let
-        recent = List.take 3 (List.reverse entries)
+        recent = List.take 5 (List.reverse entries)
     in
     if List.isEmpty recent then
         text ""
@@ -675,193 +552,67 @@ viewRecentEntries entries =
                 , style "color" "#888"
                 ]
                 [ text "Recent Entries" ]
-            , div [] (List.map viewRecentEntry recent)
+            , div [] (List.map (viewRecentEntry entries) recent)
             ]
 
-viewRecentEntry : Entry -> Html Msg
-viewRecentEntry entry =
+viewRecentEntry : List Entry -> Entry -> Html Msg
+viewRecentEntry allEntries entry =
+    let
+        incomingPay = incomingPayForEntry entry allEntries
+    in
     div
         [ style "display" "flex"
-        , style "justify-content" "space-between"
-        , style "align-items" "center"
+        , style "flex-direction" "column"
         , style "padding" "10px"
         , style "background" "#252542"
         , style "border-radius" "6px"
         , style "margin-bottom" "8px"
         , style "font-size" "0.85em"
         ]
-        [ div [ style "display" "flex", style "gap" "15px", style "flex-wrap" "wrap", style "flex" "1" ]
-            [ span [ style "color" "#888" ] [ text entry.date ]
-            , span [] [ text ("Chk: $" ++ formatAmount entry.checking) ]
-            , span [] [ text ("Crd: $" ++ formatAmount entry.creditAvailable) ]
-            , if entry.hoursWorked > 0 then
-                span [ style "color" "#4ade80" ]
-                    [ text (formatAmount entry.hoursWorked ++ "h @ $" ++ formatAmount entry.payPerHour) ]
-              else
-                text ""
-            , if entry.otherIncoming > 0 then
-                span [ style "color" "#4ade80" ] [ text ("+$" ++ formatAmount entry.otherIncoming) ]
-              else
-                text ""
-            , if entry.note /= "" then
-                span [ style "color" "#888", style "font-style" "italic" ] [ text entry.note ]
-              else
-                text ""
+        [ div
+            [ style "display" "flex"
+            , style "justify-content" "space-between"
+            , style "align-items" "center"
             ]
-        , button
-            [ onClick (DeleteEntry entry.id)
-            , style "background" "transparent"
-            , style "border" "none"
-            , style "color" "#ff6b6b"
-            , style "font-size" "1.2em"
-            , style "cursor" "pointer"
-            , style "padding" "0 5px"
-            ]
-            [ text "X" ]
-        ]
-
-viewCalculated : List Entry -> Html Msg
-viewCalculated entries =
-    let
-        incomingPay = calculateIncomingPay entries
-    in
-    div
-        [ style "background" "#252542"
-        , style "padding" "15px"
-        , style "border-radius" "12px"
-        , style "margin-bottom" "20px"
-        ]
-        [ h2
-            [ style "font-weight" "300"
-            , style "font-size" "1em"
-            , style "margin" "0 0 10px 0"
-            , style "color" "#888"
-            ]
-            [ text "Calculated" ]
-        , div [ style "display" "flex", style "gap" "20px", style "flex-wrap" "wrap" ]
-            [ div []
-                [ span [ style "color" "#888" ] [ text "Incoming Pay: " ]
-                , span [ style "color" "#4ade80", style "font-size" "1.2em" ]
-                    [ text ("$" ++ formatAmount incomingPay) ]
+            [ div [ style "display" "flex", style "gap" "15px", style "flex-wrap" "wrap", style "flex" "1" ]
+                [ span [ style "color" "#888" ] [ text entry.date ]
+                , span [] [ text ("Chk: $" ++ formatAmount entry.checking) ]
+                , span [] [ text ("Crd: $" ++ formatAmount entry.creditAvailable) ]
+                , if entry.hoursWorked > 0 then
+                    span [ style "color" "#4ade80" ]
+                        [ text (formatAmount entry.hoursWorked ++ "h @ $" ++ formatAmount entry.payPerHour) ]
+                  else
+                    text ""
+                , if entry.otherIncoming > 0 then
+                    span [ style "color" "#4ade80" ] [ text ("+$" ++ formatAmount entry.otherIncoming) ]
+                  else
+                    text ""
+                , if entry.payCashed then
+                    span [ style "color" "#fbbf24" ] [ text "[Cashed]" ]
+                  else
+                    text ""
+                , if entry.note /= "" then
+                    span [ style "color" "#888", style "font-style" "italic" ] [ text entry.note ]
+                  else
+                    text ""
                 ]
+            , button
+                [ onClick (DeleteEntry entry.id)
+                , style "background" "transparent"
+                , style "border" "none"
+                , style "color" "#ff6b6b"
+                , style "font-size" "1.2em"
+                , style "cursor" "pointer"
+                , style "padding" "0 5px"
+                ]
+                [ text "X" ]
+            ]
+        , div [ style "margin-top" "5px", style "padding-top" "5px", style "border-top" "1px solid #333" ]
+            [ span [ style "color" "#888", style "font-size" "0.9em" ] [ text "Incoming: " ]
+            , span [ style "color" "#4ade80", style "font-weight" "500" ]
+                [ text ("$" ++ formatAmount incomingPay) ]
             ]
         ]
-
-
--- Calculate incoming pay based on hours worked in weeks not yet cashed
-calculateIncomingPay : List Entry -> Float
-calculateIncomingPay entries =
-    let
-        -- Tax multiplier placeholder: 1.0 means no tax deducted
-        taxMultiplier = 1.0
-
-        -- Get entries sorted by date
-        sortedEntries = List.sortBy .date entries
-
-        -- Find the most recent week number that has payCashed = true
-        mostRecentCashedWeek =
-            sortedEntries
-                |> List.filter .payCashed
-                |> List.map (\e -> dateToWeekNumber (dateToDays e.date))
-                |> List.maximum
-                |> Maybe.withDefault -1  -- -1 means no weeks have been cashed
-
-        -- Filter to entries in weeks AFTER the most recently cashed week
-        uncashedEntries =
-            sortedEntries
-                |> List.filter (\e -> dateToWeekNumber (dateToDays e.date) > mostRecentCashedWeek)
-
-        -- Group entries by week for overtime calculation
-        weeklyGroups = groupByWeek uncashedEntries
-
-        -- Calculate pay for each week with overtime
-        weeklyPay = List.map calculateWeekPay weeklyGroups
-    in
-    List.sum weeklyPay * taxMultiplier
-
-
--- Get week number from days since epoch (weeks since epoch start)
--- Week starts on Sunday (consistent with typical US payroll)
-dateToWeekNumber : Int -> Int
-dateToWeekNumber days =
-    -- 2000-01-01 was a Saturday, so day 0 is in week 0
-    -- Sunday would be day 1, which starts week 1
-    -- To align: (days + 1) // 7 gives us week number where Sunday starts new week
-    (days + 1) // 7
-
-
--- Group entries by week number
-groupByWeek : List Entry -> List (List Entry)
-groupByWeek entries =
-    let
-        weekNumbers =
-            entries
-                |> List.map (\e -> dateToWeekNumber (dateToDays e.date))
-                |> uniqueInts
-    in
-    weekNumbers
-        |> List.map (\wn ->
-            List.filter (\e -> dateToWeekNumber (dateToDays e.date) == wn) entries
-        )
-
-
--- Simple unique helper for Ints
-uniqueInts : List Int -> List Int
-uniqueInts list =
-    List.foldr
-        (\x acc ->
-            if List.member x acc then
-                acc
-            else
-                x :: acc
-        )
-        []
-        list
-
-
--- Calculate pay for a single week with Alaska overtime rules
--- Overtime: >8 hours/day OR >40 hours/week = 1.5x
-calculateWeekPay : List Entry -> Float
-calculateWeekPay weekEntries =
-    let
-        -- First, calculate daily overtime for each day
-        dailyResults =
-            weekEntries
-                |> List.map (\entry ->
-                    let
-                        regularHours = min entry.hoursWorked 8
-                        dailyOvertimeHours = max 0 (entry.hoursWorked - 8)
-                    in
-                    { entry = entry
-                    , regularHours = regularHours
-                    , dailyOvertimeHours = dailyOvertimeHours
-                    }
-                )
-
-        -- Sum up regular hours (after daily overtime removed)
-        totalRegularHours = List.sum (List.map .regularHours dailyResults)
-
-        -- Sum up daily overtime hours
-        totalDailyOvertimeHours = List.sum (List.map .dailyOvertimeHours dailyResults)
-
-        -- Check for weekly overtime (>40 regular hours)
-        weeklyRegularHours = min totalRegularHours 40
-        weeklyOvertimeHours = max 0 (totalRegularHours - 40)
-
-        -- Total overtime = daily overtime + weekly overtime (from regular hours exceeding 40)
-        totalOvertimeHours = totalDailyOvertimeHours + weeklyOvertimeHours
-
-        -- Final regular hours (after both daily and weekly overtime removed)
-        finalRegularHours = weeklyRegularHours
-
-        -- Get pay rate (use first entry's rate, or 0 if empty)
-        payPerHour =
-            weekEntries
-                |> List.head
-                |> Maybe.map .payPerHour
-                |> Maybe.withDefault 0
-    in
-    (finalRegularHours * payPerHour) + (totalOvertimeHours * payPerHour * 1.5)
 
 
 viewGraphPlaceholder : Html Msg
