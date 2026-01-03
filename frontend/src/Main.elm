@@ -5,6 +5,7 @@ import Browser
 import Browser.Navigation as Nav
 import Calculations exposing (dateToDays, daysToDateString, dayOfWeekName, incomingPayForEntry)
 import Element exposing (..)
+import Graph
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -37,6 +38,7 @@ type alias EntryForm =
     { dateDays : Int  -- Days since epoch (2000-01-01 = 0)
     , checking : String
     , creditAvailable : String
+    , creditLimit : String
     , hoursWorkedHours : String
     , hoursWorkedMinutes : String
     , payPerHour : String
@@ -66,6 +68,7 @@ emptyForm todayDays =
     { dateDays = todayDays
     , checking = ""
     , creditAvailable = ""
+    , creditLimit = ""
     , hoursWorkedHours = ""
     , hoursWorkedMinutes = ""
     , payPerHour = ""
@@ -81,6 +84,7 @@ formFromLastEntry todayDays entry =
     { dateDays = todayDays
     , checking = String.fromFloat entry.checking
     , creditAvailable = String.fromFloat entry.creditAvailable
+    , creditLimit = String.fromFloat entry.creditLimit
     , hoursWorkedHours = ""  -- Don't carry over hours, default to empty
     , hoursWorkedMinutes = ""
     , payPerHour = String.fromFloat entry.payPerHour
@@ -102,6 +106,7 @@ formFromEntry entry =
     { dateDays = dateToDays entry.date
     , checking = String.fromFloat entry.checking
     , creditAvailable = String.fromFloat entry.creditAvailable
+    , creditLimit = String.fromFloat entry.creditLimit
     , hoursWorkedHours = if hours > 0 || minutes > 0 then String.fromInt hours else ""
     , hoursWorkedMinutes = if hours > 0 || minutes > 0 then String.fromInt minutes else ""
     , payPerHour = String.fromFloat entry.payPerHour
@@ -155,6 +160,7 @@ type Msg
     | LinkClicked Browser.UrlRequest
     | UpdateChecking String
     | UpdateCreditAvailable String
+    | UpdateCreditLimit String
     | UpdateHoursWorkedHours String
     | UpdateHoursWorkedMinutes String
     | UpdatePayPerHour String
@@ -211,6 +217,10 @@ update msg model =
             let f = model.form in
             ( { model | form = { f | creditAvailable = val } }, Cmd.none )
 
+        UpdateCreditLimit val ->
+            let f = model.form in
+            ( { model | form = { f | creditLimit = val } }, Cmd.none )
+
         UpdateHoursWorkedHours val ->
             let f = model.form in
             ( { model | form = { f | hoursWorkedHours = val } }, Cmd.none )
@@ -259,6 +269,7 @@ update msg model =
                             { date = dateStr
                             , checking = checking
                             , creditAvailable = creditAvailable
+                            , creditLimit = String.toFloat f.creditLimit |> Maybe.withDefault 0
                             , hoursWorked = totalHours
                             , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
                             , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
@@ -420,7 +431,10 @@ viewGraphPage : Model -> Element Msg
 viewGraphPage model =
     column [ spacing 20, width fill ]
         [ el [ Font.size 24, Font.light ] (text "Finance Tracker")
-        , viewGraphPlaceholder
+        , if model.loading then
+            el [] (text "Loading...")
+          else
+            Graph.viewGraph model.entries
         , viewMessageForMom
         ]
 
@@ -453,6 +467,7 @@ viewEntryForm model =
         [ viewDatePicker model.form.dateDays
         , viewCompactField "Checking" model.form.checking UpdateChecking 90
         , viewCompactField "Credit Avail" model.form.creditAvailable UpdateCreditAvailable 90
+        , viewCompactField "Credit Limit" model.form.creditLimit UpdateCreditLimit 90
         , viewHoursMinutesField model.form.hoursWorkedHours model.form.hoursWorkedMinutes
         , viewCompactField "$/hr" model.form.payPerHour UpdatePayPerHour 70
         , viewCompactField "Other $" model.form.otherIncoming UpdateOtherIncoming 80
@@ -679,17 +694,6 @@ viewRecentEntry allEntries entry =
             ]
         ]
 
-
-viewGraphPlaceholder : Element Msg
-viewGraphPlaceholder =
-    el
-        [ Background.color colors.cardBg
-        , padding 40
-        , Border.rounded 12
-        , Font.color colors.textMuted
-        , centerX
-        ]
-        (text "[ TODO: Graph will go here ]")
 
 viewMessageForMom : Element Msg
 viewMessageForMom =

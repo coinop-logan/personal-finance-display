@@ -58,6 +58,7 @@ async fn create_entry(
     if let Some(existing) = data.entries.iter_mut().find(|e| e.date == new_entry.date) {
         existing.checking = new_entry.checking;
         existing.credit_available = new_entry.credit_available;
+        existing.credit_limit = new_entry.credit_limit;
         existing.hours_worked = new_entry.hours_worked;
         existing.pay_per_hour = new_entry.pay_per_hour;
         existing.other_incoming = new_entry.other_incoming;
@@ -71,6 +72,7 @@ async fn create_entry(
             date: new_entry.date,
             checking: new_entry.checking,
             credit_available: new_entry.credit_available,
+            credit_limit: new_entry.credit_limit,
             hours_worked: new_entry.hours_worked,
             pay_per_hour: new_entry.pay_per_hour,
             other_incoming: new_entry.other_incoming,

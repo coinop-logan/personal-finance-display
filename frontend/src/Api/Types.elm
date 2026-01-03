@@ -15,6 +15,7 @@ type alias Entry =
     , date : String
     , checking : Float
     , creditAvailable : Float
+    , creditLimit : Float
     , hoursWorked : Float
     , payPerHour : Float
     , otherIncoming : Float
@@ -31,6 +32,7 @@ entryDecoder =
         |> Decode.andThen (\x -> Decode.map x (Decode.field "date" (Decode.string)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "checking" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "creditAvailable" (Decode.float)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "creditLimit" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "hoursWorked" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "payPerHour" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "otherIncoming" (Decode.float)))
@@ -46,6 +48,7 @@ entryEncoder struct =
         , ( "date", (Encode.string) struct.date )
         , ( "checking", (Encode.float) struct.checking )
         , ( "creditAvailable", (Encode.float) struct.creditAvailable )
+        , ( "creditLimit", (Encode.float) struct.creditLimit )
         , ( "hoursWorked", (Encode.float) struct.hoursWorked )
         , ( "payPerHour", (Encode.float) struct.payPerHour )
         , ( "otherIncoming", (Encode.float) struct.otherIncoming )
@@ -59,6 +62,7 @@ type alias NewEntry =
     { date : String
     , checking : Float
     , creditAvailable : Float
+    , creditLimit : Float
     , hoursWorked : Float
     , payPerHour : Float
     , otherIncoming : Float
@@ -74,6 +78,7 @@ newEntryDecoder =
         |> Decode.andThen (\x -> Decode.map x (Decode.field "date" (Decode.string)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "checking" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "creditAvailable" (Decode.float)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "creditLimit" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "hoursWorked" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "payPerHour" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "otherIncoming" (Decode.float)))
@@ -88,6 +93,7 @@ newEntryEncoder struct =
         [ ( "date", (Encode.string) struct.date )
         , ( "checking", (Encode.float) struct.checking )
         , ( "creditAvailable", (Encode.float) struct.creditAvailable )
+        , ( "creditLimit", (Encode.float) struct.creditLimit )
         , ( "hoursWorked", (Encode.float) struct.hoursWorked )
         , ( "payPerHour", (Encode.float) struct.payPerHour )
         , ( "otherIncoming", (Encode.float) struct.otherIncoming )
