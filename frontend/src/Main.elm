@@ -35,7 +35,8 @@ type alias EntryForm =
     { dateDays : Int  -- Days since epoch (2000-01-01 = 0)
     , checking : String
     , creditAvailable : String
-    , hoursWorked : String
+    , hoursWorkedHours : String
+    , hoursWorkedMinutes : String
     , payPerHour : String
     , otherIncoming : String
     , personalDebt : String
@@ -63,7 +64,8 @@ emptyForm todayDays =
     { dateDays = todayDays
     , checking = ""
     , creditAvailable = ""
-    , hoursWorked = ""
+    , hoursWorkedHours = ""
+    , hoursWorkedMinutes = ""
     , payPerHour = ""
     , otherIncoming = ""
     , personalDebt = ""
@@ -77,7 +79,8 @@ formFromLastEntry todayDays entry =
     { dateDays = todayDays
     , checking = String.fromFloat entry.checking
     , creditAvailable = String.fromFloat entry.creditAvailable
-    , hoursWorked = ""  -- Don't carry over hours, default to empty (0)
+    , hoursWorkedHours = ""  -- Don't carry over hours, default to empty
+    , hoursWorkedMinutes = ""
     , payPerHour = String.fromFloat entry.payPerHour
     , otherIncoming = String.fromFloat entry.otherIncoming
     , personalDebt = String.fromFloat entry.personalDebt
@@ -138,7 +141,8 @@ type Msg
 type FormField
     = Checking
     | CreditAvailable
-    | HoursWorked
+    | HoursWorkedHours
+    | HoursWorkedMinutes
     | PayPerHour
     | OtherIncoming
     | PersonalDebt
@@ -185,7 +189,8 @@ update msg model =
                     case field of
                         Checking -> { f | checking = val }
                         CreditAvailable -> { f | creditAvailable = val }
-                        HoursWorked -> { f | hoursWorked = val }
+                        HoursWorkedHours -> { f | hoursWorkedHours = val }
+                        HoursWorkedMinutes -> { f | hoursWorkedMinutes = val }
                         PayPerHour -> { f | payPerHour = val }
                         OtherIncoming -> { f | otherIncoming = val }
                         PersonalDebt -> { f | personalDebt = val }
@@ -209,13 +214,19 @@ update msg model =
             let
                 f = model.form
                 dateStr = daysToDateString f.dateDays
+
+                -- Convert hours:minutes to decimal hours
+                hours = String.toFloat f.hoursWorkedHours |> Maybe.withDefault 0
+                minutes = String.toFloat f.hoursWorkedMinutes |> Maybe.withDefault 0
+                totalHours = hours + (minutes / 60)
+
                 maybeEntry =
                     Maybe.map2
                         (\checking creditAvailable ->
                             { date = dateStr
                             , checking = checking
                             , creditAvailable = creditAvailable
-                            , hoursWorked = String.toFloat f.hoursWorked |> Maybe.withDefault 0
+                            , hoursWorked = totalHours
                             , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
                             , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
                             , personalDebt = String.toFloat f.personalDebt |> Maybe.withDefault 0
@@ -407,7 +418,7 @@ viewEntryForm model =
             [ viewDatePicker model.form.dateDays
             , viewCompactField "Checking" "number" model.form.checking (UpdateForm Checking) "90px"
             , viewCompactField "Credit Avail" "number" model.form.creditAvailable (UpdateForm CreditAvailable) "90px"
-            , viewCompactField "Hours Today" "number" model.form.hoursWorked (UpdateForm HoursWorked) "80px"
+            , viewHoursMinutesField model.form.hoursWorkedHours model.form.hoursWorkedMinutes
             , viewCompactField "$/hr" "number" model.form.payPerHour (UpdateForm PayPerHour) "70px"
             , viewCompactField "Other $" "number" model.form.otherIncoming (UpdateForm OtherIncoming) "80px"
             , viewCompactField "Pers. Debt" "number" model.form.personalDebt (UpdateForm PersonalDebt) "80px"
@@ -511,6 +522,61 @@ viewCompactField labelText inputType val toMsg width =
             , if inputType == "number" then step "0.01" else style "" ""
             ]
             []
+        ]
+
+
+viewHoursMinutesField : String -> String -> Html Msg
+viewHoursMinutesField hoursVal minutesVal =
+    div [ style "display" "flex", style "flex-direction" "column" ]
+        [ label
+            [ style "font-size" "0.7em"
+            , style "color" "#888"
+            , style "margin-bottom" "3px"
+            ]
+            [ text "Hours Today" ]
+        , div [ style "display" "flex", style "align-items" "center" ]
+            [ input
+                [ type_ "number"
+                , value hoursVal
+                , onInput (UpdateForm HoursWorkedHours)
+                , style "width" "28px"
+                , style "padding" "8px 4px"
+                , style "background" "#1a1a2e"
+                , style "border" "1px solid #333"
+                , style "border-radius" "4px 0 0 4px"
+                , style "color" "#eee"
+                , style "font-size" "0.9em"
+                , style "box-sizing" "border-box"
+                , style "text-align" "center"
+                , step "1"
+                ]
+                []
+            , span
+                [ style "padding" "8px 2px"
+                , style "background" "#1a1a2e"
+                , style "border-top" "1px solid #333"
+                , style "border-bottom" "1px solid #333"
+                , style "color" "#888"
+                , style "font-size" "0.9em"
+                ]
+                [ text ":" ]
+            , input
+                [ type_ "number"
+                , value minutesVal
+                , onInput (UpdateForm HoursWorkedMinutes)
+                , style "width" "28px"
+                , style "padding" "8px 4px"
+                , style "background" "#1a1a2e"
+                , style "border" "1px solid #333"
+                , style "border-radius" "0 4px 4px 0"
+                , style "color" "#eee"
+                , style "font-size" "0.9em"
+                , style "box-sizing" "border-box"
+                , style "text-align" "center"
+                , step "1"
+                ]
+                []
+            ]
         ]
 
 
