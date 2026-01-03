@@ -63,6 +63,7 @@ async fn create_entry(
         existing.other_incoming = new_entry.other_incoming;
         existing.personal_debt = new_entry.personal_debt;
         existing.note = new_entry.note;
+        existing.pay_cashed = new_entry.pay_cashed;
     } else {
         // Create new entry
         let entry = Entry {
@@ -75,6 +76,7 @@ async fn create_entry(
             other_incoming: new_entry.other_incoming,
             personal_debt: new_entry.personal_debt,
             note: new_entry.note,
+            pay_cashed: new_entry.pay_cashed,
         };
 
         data.next_id += 1;

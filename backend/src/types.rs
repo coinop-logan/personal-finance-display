@@ -14,6 +14,7 @@ pub struct Entry {
     pub other_incoming: f64,
     pub personal_debt: f64,
     pub note: String,
+    pub pay_cashed: bool,
 }
 
 /// Request body for creating a new entry
@@ -28,6 +29,7 @@ pub struct NewEntry {
     pub other_incoming: f64,
     pub personal_debt: f64,
     pub note: String,
+    pub pay_cashed: bool,
 }
 
 /// Generic API response for mutations

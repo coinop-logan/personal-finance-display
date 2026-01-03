@@ -20,6 +20,7 @@ type alias Entry =
     , otherIncoming : Float
     , personalDebt : Float
     , note : String
+    , payCashed : Bool
     }
 
 
@@ -35,6 +36,7 @@ entryDecoder =
         |> Decode.andThen (\x -> Decode.map x (Decode.field "otherIncoming" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "personalDebt" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "note" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "payCashed" (Decode.bool)))
 
 
 entryEncoder : Entry -> Encode.Value
@@ -49,6 +51,7 @@ entryEncoder struct =
         , ( "otherIncoming", (Encode.float) struct.otherIncoming )
         , ( "personalDebt", (Encode.float) struct.personalDebt )
         , ( "note", (Encode.string) struct.note )
+        , ( "payCashed", (Encode.bool) struct.payCashed )
         ]
 
 
@@ -61,6 +64,7 @@ type alias NewEntry =
     , otherIncoming : Float
     , personalDebt : Float
     , note : String
+    , payCashed : Bool
     }
 
 
@@ -75,6 +79,7 @@ newEntryDecoder =
         |> Decode.andThen (\x -> Decode.map x (Decode.field "otherIncoming" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "personalDebt" (Decode.float)))
         |> Decode.andThen (\x -> Decode.map x (Decode.field "note" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "payCashed" (Decode.bool)))
 
 
 newEntryEncoder : NewEntry -> Encode.Value
@@ -88,6 +93,7 @@ newEntryEncoder struct =
         , ( "otherIncoming", (Encode.float) struct.otherIncoming )
         , ( "personalDebt", (Encode.float) struct.personalDebt )
         , ( "note", (Encode.string) struct.note )
+        , ( "payCashed", (Encode.bool) struct.payCashed )
         ]
 
 

@@ -4,7 +4,7 @@ import Api.Types exposing (Entry, NewEntry, entryDecoder, newEntryEncoder)
 import Browser
 import Browser.Navigation as Nav
 import Html exposing (Html, div, text, h1, h2, p, input, button, label, span)
-import Html.Attributes exposing (style, type_, value, placeholder, step, id)
+import Html.Attributes exposing (style, type_, value, placeholder, step, id, checked)
 import Html.Events exposing (onInput, onClick)
 import Http
 import Json.Decode as Decode exposing (Decoder)
@@ -39,6 +39,7 @@ type alias EntryForm =
     , otherIncoming : String
     , personalDebt : String
     , note : String
+    , payCashed : Bool
     }
 
 type Page
@@ -66,6 +67,7 @@ emptyForm todayDays =
     , otherIncoming = ""
     , personalDebt = ""
     , note = ""
+    , payCashed = False
     }
 
 
@@ -79,6 +81,7 @@ formFromLastEntry todayDays entry =
     , otherIncoming = String.fromFloat entry.otherIncoming
     , personalDebt = String.fromFloat entry.personalDebt
     , note = ""
+    , payCashed = False  -- Don't carry over, default to unchecked
     }
 
 
@@ -144,6 +147,7 @@ type Msg
     | LinkClicked Browser.UrlRequest
     | UpdateForm FormField String
     | AdjustDate Int
+    | TogglePayCashed
     | SubmitEntry
     | SubmitResult (Result Http.Error ())
     | DeleteEntry Int
@@ -213,6 +217,12 @@ update msg model =
             in
             ( { model | form = { f | dateDays = f.dateDays + delta } }, Cmd.none )
 
+        TogglePayCashed ->
+            let
+                f = model.form
+            in
+            ( { model | form = { f | payCashed = not f.payCashed } }, Cmd.none )
+
         SubmitEntry ->
             let
                 f = model.form
@@ -228,6 +238,7 @@ update msg model =
                             , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
                             , personalDebt = String.toFloat f.personalDebt |> Maybe.withDefault 0
                             , note = f.note
+                            , payCashed = f.payCashed
                             }
                         )
                         (String.toFloat f.checking)
@@ -524,6 +535,7 @@ viewEntryForm model =
             , viewCompactField "Other $" "number" model.form.otherIncoming (UpdateForm OtherIncoming) "80px"
             , viewCompactField "Pers. Debt" "number" model.form.personalDebt (UpdateForm PersonalDebt) "80px"
             , viewCompactField "Note" "text" model.form.note (UpdateForm Note) "120px"
+            , viewCheckbox "Pay Cashed" model.form.payCashed TogglePayCashed
             , button
                 [ onClick SubmitEntry
                 , style "padding" "8px 20px"
@@ -621,6 +633,32 @@ viewCompactField labelText inputType val toMsg width =
             []
         ]
 
+
+viewCheckbox : String -> Bool -> Msg -> Html Msg
+viewCheckbox labelText isChecked toggleMsg =
+    div
+        [ style "display" "flex"
+        , style "flex-direction" "column"
+        , style "align-items" "center"
+        ]
+        [ label
+            [ style "font-size" "0.7em"
+            , style "color" "#888"
+            , style "margin-bottom" "3px"
+            ]
+            [ text labelText ]
+        , input
+            [ type_ "checkbox"
+            , checked isChecked
+            , onClick toggleMsg
+            , style "width" "20px"
+            , style "height" "20px"
+            , style "cursor" "pointer"
+            , style "accent-color" "#4facfe"
+            ]
+            []
+        ]
+
 viewRecentEntries : List Entry -> Html Msg
 viewRecentEntries entries =
     let
@@ -683,7 +721,10 @@ viewRecentEntry entry =
         ]
 
 viewCalculated : List Entry -> Html Msg
-viewCalculated _ =
+viewCalculated entries =
+    let
+        incomingPay = calculateIncomingPay entries
+    in
     div
         [ style "background" "#252542"
         , style "padding" "15px"
@@ -697,7 +738,130 @@ viewCalculated _ =
             , style "color" "#888"
             ]
             [ text "Calculated" ]
+        , div [ style "display" "flex", style "gap" "20px", style "flex-wrap" "wrap" ]
+            [ div []
+                [ span [ style "color" "#888" ] [ text "Incoming Pay: " ]
+                , span [ style "color" "#4ade80", style "font-size" "1.2em" ]
+                    [ text ("$" ++ formatAmount incomingPay) ]
+                ]
+            ]
         ]
+
+
+-- Calculate incoming pay based on hours worked in weeks not yet cashed
+calculateIncomingPay : List Entry -> Float
+calculateIncomingPay entries =
+    let
+        -- Tax multiplier placeholder: 1.0 means no tax deducted
+        taxMultiplier = 1.0
+
+        -- Get entries sorted by date
+        sortedEntries = List.sortBy .date entries
+
+        -- Find the most recent week number that has payCashed = true
+        mostRecentCashedWeek =
+            sortedEntries
+                |> List.filter .payCashed
+                |> List.map (\e -> dateToWeekNumber (dateToDays e.date))
+                |> List.maximum
+                |> Maybe.withDefault -1  -- -1 means no weeks have been cashed
+
+        -- Filter to entries in weeks AFTER the most recently cashed week
+        uncashedEntries =
+            sortedEntries
+                |> List.filter (\e -> dateToWeekNumber (dateToDays e.date) > mostRecentCashedWeek)
+
+        -- Group entries by week for overtime calculation
+        weeklyGroups = groupByWeek uncashedEntries
+
+        -- Calculate pay for each week with overtime
+        weeklyPay = List.map calculateWeekPay weeklyGroups
+    in
+    List.sum weeklyPay * taxMultiplier
+
+
+-- Get week number from days since epoch (weeks since epoch start)
+-- Week starts on Sunday (consistent with typical US payroll)
+dateToWeekNumber : Int -> Int
+dateToWeekNumber days =
+    -- 2000-01-01 was a Saturday, so day 0 is in week 0
+    -- Sunday would be day 1, which starts week 1
+    -- To align: (days + 1) // 7 gives us week number where Sunday starts new week
+    (days + 1) // 7
+
+
+-- Group entries by week number
+groupByWeek : List Entry -> List (List Entry)
+groupByWeek entries =
+    let
+        weekNumbers =
+            entries
+                |> List.map (\e -> dateToWeekNumber (dateToDays e.date))
+                |> uniqueInts
+    in
+    weekNumbers
+        |> List.map (\wn ->
+            List.filter (\e -> dateToWeekNumber (dateToDays e.date) == wn) entries
+        )
+
+
+-- Simple unique helper for Ints
+uniqueInts : List Int -> List Int
+uniqueInts list =
+    List.foldr
+        (\x acc ->
+            if List.member x acc then
+                acc
+            else
+                x :: acc
+        )
+        []
+        list
+
+
+-- Calculate pay for a single week with Alaska overtime rules
+-- Overtime: >8 hours/day OR >40 hours/week = 1.5x
+calculateWeekPay : List Entry -> Float
+calculateWeekPay weekEntries =
+    let
+        -- First, calculate daily overtime for each day
+        dailyResults =
+            weekEntries
+                |> List.map (\entry ->
+                    let
+                        regularHours = min entry.hoursWorked 8
+                        dailyOvertimeHours = max 0 (entry.hoursWorked - 8)
+                    in
+                    { entry = entry
+                    , regularHours = regularHours
+                    , dailyOvertimeHours = dailyOvertimeHours
+                    }
+                )
+
+        -- Sum up regular hours (after daily overtime removed)
+        totalRegularHours = List.sum (List.map .regularHours dailyResults)
+
+        -- Sum up daily overtime hours
+        totalDailyOvertimeHours = List.sum (List.map .dailyOvertimeHours dailyResults)
+
+        -- Check for weekly overtime (>40 regular hours)
+        weeklyRegularHours = min totalRegularHours 40
+        weeklyOvertimeHours = max 0 (totalRegularHours - 40)
+
+        -- Total overtime = daily overtime + weekly overtime (from regular hours exceeding 40)
+        totalOvertimeHours = totalDailyOvertimeHours + weeklyOvertimeHours
+
+        -- Final regular hours (after both daily and weekly overtime removed)
+        finalRegularHours = weeklyRegularHours
+
+        -- Get pay rate (use first entry's rate, or 0 if empty)
+        payPerHour =
+            weekEntries
+                |> List.head
+                |> Maybe.map .payPerHour
+                |> Maybe.withDefault 0
+    in
+    (finalRegularHours * payPerHour) + (totalOvertimeHours * payPerHour * 1.5)
 
 
 viewGraphPlaceholder : Html Msg
