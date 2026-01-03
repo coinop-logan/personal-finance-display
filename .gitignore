@@ -10,3 +10,4 @@ data.json
 
 # OS
 .DS_Store
+frontend/node_modules/
