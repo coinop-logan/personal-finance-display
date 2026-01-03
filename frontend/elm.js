@@ -15329,7 +15329,7 @@ var $author$project$Graph$buildDayData = function (entries) {
 	var buildForDay = F2(
 		function (day, entry) {
 			var incomingPay = A2($author$project$Calculations$incomingPayForEntry, entry, entries);
-			return {a1: entry.a1 / 1000, aL: (entry.a8 - entry.a7) / 1000, as: day, aN: (entry.a1 + incomingPay) / 1000, bn: entry.bn / 1000};
+			return {a1: entry.a1 / 1000, aL: (entry.a8 - entry.a7) / 1000, a8: entry.a8 / 1000, as: day, aN: (entry.a1 + incomingPay) / 1000, bn: entry.bn / 1000};
 		});
 	return A2(
 		$elm$core$List$map,
@@ -15345,102 +15345,81 @@ var $author$project$Graph$colorCerulean = '#00acee';
 var $author$project$Graph$colorGreen = '#4ade80';
 var $author$project$Graph$colorRed = '#ff6b6b';
 var $author$project$Graph$colorYellow = '#fbbf24';
+var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
 var $author$project$Graph$marginLeft = 50;
 var $author$project$Graph$graphWidth = 800;
 var $author$project$Graph$marginRight = 80;
 var $author$project$Graph$plotWidth = ($author$project$Graph$graphWidth - $author$project$Graph$marginLeft) - $author$project$Graph$marginRight;
-var $author$project$Graph$startDate = $author$project$Calculations$dateToDays('2025-12-23');
+var $author$project$Graph$startDate = $author$project$Calculations$dateToDays('2025-12-20');
 var $author$project$Graph$endDate = $author$project$Calculations$dateToDays('2026-01-31');
 var $author$project$Graph$totalDays = $author$project$Graph$endDate - $author$project$Graph$startDate;
-var $author$project$Graph$dayToX = function (day) {
-	var totalDaysFloat = $author$project$Graph$totalDays;
-	var dayOffset = day - $author$project$Graph$startDate;
-	return $author$project$Graph$marginLeft + ((dayOffset / totalDaysFloat) * $author$project$Graph$plotWidth);
-};
-var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
-var $elm$core$Basics$abs = function (n) {
-	return (n < 0) ? (-n) : n;
-};
-var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
-var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
-var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
-var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
-var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
-var $elm$svg$Svg$Attributes$x = _VirtualDom_attribute('x');
-var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
-var $author$project$Graph$drawBar = F5(
-	function (x1, width, y1, y2, color) {
-		return A2(
-			$elm$svg$Svg$rect,
-			_List_fromArray(
-				[
-					$elm$svg$Svg$Attributes$x(
-					$elm$core$String$fromFloat(x1)),
-					$elm$svg$Svg$Attributes$y(
-					$elm$core$String$fromFloat(
-						A2($elm$core$Basics$min, y1, y2))),
-					$elm$svg$Svg$Attributes$width(
-					$elm$core$String$fromFloat(width)),
-					$elm$svg$Svg$Attributes$height(
-					$elm$core$String$fromFloat(
-						$elm$core$Basics$abs(y2 - y1))),
-					$elm$svg$Svg$Attributes$fill(color)
-				]),
-			_List_Nil);
+var $author$project$Graph$dayToX = F2(
+	function (yMinK, day) {
+		var totalDaysFloat = $author$project$Graph$totalDays;
+		var dayOffset = day - $author$project$Graph$startDate;
+		return $author$project$Graph$marginLeft + ((dayOffset / totalDaysFloat) * $author$project$Graph$plotWidth);
 	});
+var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
+var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var $elm$svg$Svg$g = $elm$svg$Svg$trustedNode('g');
 var $elm$svg$Svg$Attributes$points = _VirtualDom_attribute('points');
 var $elm$svg$Svg$polyline = $elm$svg$Svg$trustedNode('polyline');
 var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
 var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
-var $author$project$Graph$drawStepLine = F2(
-	function (points, color) {
-		if ($elm$core$List$isEmpty(points)) {
+var $author$project$Graph$marginTop = 20;
+var $author$project$Graph$graphHeight = 400;
+var $author$project$Graph$marginBottom = 30;
+var $author$project$Graph$plotHeight = ($author$project$Graph$graphHeight - $author$project$Graph$marginTop) - $author$project$Graph$marginBottom;
+var $author$project$Graph$yMax = 20.0;
+var $author$project$Graph$valueToY = F2(
+	function (yMinK, valueK) {
+		var range = $author$project$Graph$yMax - yMinK;
+		var normalized = (valueK - yMinK) / range;
+		return ($author$project$Graph$marginTop + $author$project$Graph$plotHeight) - (normalized * $author$project$Graph$plotHeight);
+	});
+var $author$project$Graph$drawStepLine = F3(
+	function (yMinK, dayValues, color) {
+		if ($elm$core$List$isEmpty(dayValues)) {
 			return A2($elm$svg$Svg$g, _List_Nil, _List_Nil);
 		} else {
-			var buildSteps = function (pts) {
+			var buildPoints = function (pts) {
 				if (!pts.b) {
 					return _List_Nil;
 				} else {
 					if (!pts.b.b) {
-						var single = pts.a;
-						return _List_fromArray(
-							[single]);
-					} else {
 						var _v1 = pts.a;
-						var x1 = _v1.a;
-						var y1 = _v1.b;
-						var _v2 = pts.b;
-						var _v3 = _v2.a;
-						var x2 = _v3.a;
-						var y2 = _v3.b;
-						var rest = _v2.b;
+						var day = _v1.a;
+						var val = _v1.b;
+						var y = A2($author$project$Graph$valueToY, yMinK, val);
+						var x2 = A2($author$project$Graph$dayToX, yMinK, day + 1);
+						var x1 = A2($author$project$Graph$dayToX, yMinK, day);
+						return _List_fromArray(
+							[
+								$elm$core$String$fromFloat(x1) + (',' + $elm$core$String$fromFloat(y)),
+								$elm$core$String$fromFloat(x2) + (',' + $elm$core$String$fromFloat(y))
+							]);
+					} else {
+						var _v2 = pts.a;
+						var day = _v2.a;
+						var val = _v2.b;
+						var rest = pts.b;
+						var y = A2($author$project$Graph$valueToY, yMinK, val);
+						var x2 = A2($author$project$Graph$dayToX, yMinK, day + 1);
+						var x1 = A2($author$project$Graph$dayToX, yMinK, day);
 						return A2(
 							$elm$core$List$cons,
-							_Utils_Tuple2(x1, y1),
+							$elm$core$String$fromFloat(x1) + (',' + $elm$core$String$fromFloat(y)),
 							A2(
 								$elm$core$List$cons,
-								_Utils_Tuple2(x2, y1),
-								buildSteps(
-									A2(
-										$elm$core$List$cons,
-										_Utils_Tuple2(x2, y2),
-										rest))));
+								$elm$core$String$fromFloat(x2) + (',' + $elm$core$String$fromFloat(y)),
+								buildPoints(rest)));
 					}
 				}
 			};
-			var steppedPoints = buildSteps(points);
 			var pointsStr = A2(
 				$elm$core$String$join,
 				' ',
-				A2(
-					$elm$core$List$map,
-					function (_v4) {
-						var x = _v4.a;
-						var y = _v4.b;
-						return $elm$core$String$fromFloat(x) + (',' + $elm$core$String$fromFloat(y));
-					},
-					steppedPoints));
+				buildPoints(dayValues));
 			return A2(
 				$elm$svg$Svg$polyline,
 				_List_fromArray(
@@ -15449,6 +15428,90 @@ var $author$project$Graph$drawStepLine = F2(
 						$elm$svg$Svg$Attributes$fill('none'),
 						$elm$svg$Svg$Attributes$stroke(color),
 						$elm$svg$Svg$Attributes$strokeWidth('2')
+					]),
+				_List_Nil);
+		}
+	});
+var $elm$svg$Svg$Attributes$fillOpacity = _VirtualDom_attribute('fill-opacity');
+var $elm$svg$Svg$polygon = $elm$svg$Svg$trustedNode('polygon');
+var $author$project$Graph$drawStepPolygon = F4(
+	function (yMinK, baseline, dayValues, color) {
+		if ($elm$core$List$isEmpty(dayValues)) {
+			return A2($elm$svg$Svg$g, _List_Nil, _List_Nil);
+		} else {
+			var y0 = A2($author$project$Graph$valueToY, yMinK, baseline);
+			var topEdge = function (pts) {
+				if (!pts.b) {
+					return _List_Nil;
+				} else {
+					if (!pts.b.b) {
+						var _v1 = pts.a;
+						var day = _v1.a;
+						var val = _v1.b;
+						var y = A2($author$project$Graph$valueToY, yMinK, val);
+						var x2 = A2($author$project$Graph$dayToX, yMinK, day + 1);
+						var x1 = A2($author$project$Graph$dayToX, yMinK, day);
+						return _List_fromArray(
+							[
+								$elm$core$String$fromFloat(x1) + (',' + $elm$core$String$fromFloat(y)),
+								$elm$core$String$fromFloat(x2) + (',' + $elm$core$String$fromFloat(y))
+							]);
+					} else {
+						var _v2 = pts.a;
+						var day = _v2.a;
+						var val = _v2.b;
+						var rest = pts.b;
+						var y = A2($author$project$Graph$valueToY, yMinK, val);
+						var x2 = A2($author$project$Graph$dayToX, yMinK, day + 1);
+						var x1 = A2($author$project$Graph$dayToX, yMinK, day);
+						return A2(
+							$elm$core$List$cons,
+							$elm$core$String$fromFloat(x1) + (',' + $elm$core$String$fromFloat(y)),
+							A2(
+								$elm$core$List$cons,
+								$elm$core$String$fromFloat(x2) + (',' + $elm$core$String$fromFloat(y)),
+								topEdge(rest)));
+					}
+				}
+			};
+			var lastDay = A2(
+				$elm$core$Maybe$withDefault,
+				$author$project$Graph$startDate,
+				A2(
+					$elm$core$Maybe$map,
+					$elm$core$Tuple$first,
+					$elm$core$List$head(
+						$elm$core$List$reverse(dayValues))));
+			var firstDay = A2(
+				$elm$core$Maybe$withDefault,
+				$author$project$Graph$startDate,
+				A2(
+					$elm$core$Maybe$map,
+					$elm$core$Tuple$first,
+					$elm$core$List$head(dayValues)));
+			var startX = A2($author$project$Graph$dayToX, yMinK, firstDay);
+			var endX = A2($author$project$Graph$dayToX, yMinK, lastDay + 1);
+			var pointsStr = A2(
+				$elm$core$String$join,
+				' ',
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$elm$core$String$fromFloat(startX) + (',' + $elm$core$String$fromFloat(y0))
+						]),
+					_Utils_ap(
+						topEdge(dayValues),
+						_List_fromArray(
+							[
+								$elm$core$String$fromFloat(endX) + (',' + $elm$core$String$fromFloat(y0))
+							]))));
+			return A2(
+				$elm$svg$Svg$polygon,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$points(pointsStr),
+						$elm$svg$Svg$Attributes$fill(color),
+						$elm$svg$Svg$Attributes$fillOpacity('0.8')
 					]),
 				_List_Nil);
 		}
@@ -15526,27 +15589,18 @@ var $elm$svg$Svg$line = $elm$svg$Svg$trustedNode('line');
 var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
 var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
-var $author$project$Graph$marginTop = 20;
-var $author$project$Graph$graphHeight = 400;
-var $author$project$Graph$marginBottom = 30;
-var $author$project$Graph$plotHeight = ($author$project$Graph$graphHeight - $author$project$Graph$marginTop) - $author$project$Graph$marginBottom;
-var $author$project$Graph$yMax = 20.0;
-var $author$project$Graph$yMin = -0.5;
-var $author$project$Graph$valueToY = function (valueK) {
-	var range = $author$project$Graph$yMax - $author$project$Graph$yMin;
-	var normalized = (valueK - $author$project$Graph$yMin) / range;
-	return ($author$project$Graph$marginTop + $author$project$Graph$plotHeight) - (normalized * $author$project$Graph$plotHeight);
-};
+var $elm$svg$Svg$Attributes$x = _VirtualDom_attribute('x');
 var $elm$svg$Svg$Attributes$x1 = _VirtualDom_attribute('x1');
 var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
+var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
 var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
 var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
-var $author$project$Graph$drawXAxis = function () {
-	var y0 = $author$project$Graph$valueToY(0);
+var $author$project$Graph$drawXAxis = function (yMinK) {
+	var y0 = A2($author$project$Graph$valueToY, yMinK, 0);
 	var dayTicks = A2(
 		$elm$core$List$map,
 		function (day) {
-			var x = $author$project$Graph$dayToX(day);
+			var x = A2($author$project$Graph$dayToX, yMinK, day);
 			return A2(
 				$elm$svg$Svg$g,
 				_List_Nil,
@@ -15574,7 +15628,7 @@ var $author$project$Graph$drawXAxis = function () {
 							[
 								$elm$svg$Svg$Attributes$x(
 								$elm$core$String$fromFloat(
-									x + (($author$project$Graph$dayToX(day + 1) - x) / 2))),
+									x + ((A2($author$project$Graph$dayToX, yMinK, day + 1) - x) / 2))),
 								$elm$svg$Svg$Attributes$y(
 								$elm$core$String$fromFloat(y0 + 18)),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorText),
@@ -15609,7 +15663,10 @@ var $author$project$Graph$drawXAxis = function () {
 		$elm$svg$Svg$g,
 		_List_Nil,
 		A2($elm$core$List$cons, axisLine, dayTicks));
-}();
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
 var $author$project$Graph$formatK = function (valueK) {
 	var rounded = $elm$core$Basics$round(valueK * 100) / 100;
 	var sign = (rounded < 0) ? '-' : '';
@@ -15620,24 +15677,7 @@ var $author$project$Graph$formatK = function (valueK) {
 	var decStr = (!decPart) ? '' : ((decPart < 10) ? ('.0' + $elm$core$String$fromInt(decPart)) : ('.' + $elm$core$String$fromInt(decPart)));
 	return sign + ('$' + ($elm$core$String$fromInt(intPart) + (decStr + 'k')));
 };
-var $author$project$Graph$drawYAxis = function (creditLimitK) {
-	var axisLine = A2(
-		$elm$svg$Svg$line,
-		_List_fromArray(
-			[
-				$elm$svg$Svg$Attributes$x1(
-				$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
-				$elm$svg$Svg$Attributes$y1(
-				$elm$core$String$fromFloat($author$project$Graph$marginTop)),
-				$elm$svg$Svg$Attributes$x2(
-				$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
-				$elm$svg$Svg$Attributes$y2(
-				$elm$core$String$fromFloat($author$project$Graph$graphHeight - $author$project$Graph$marginBottom)),
-				$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorAxis),
-				$elm$svg$Svg$Attributes$strokeWidth('1')
-			]),
-		_List_Nil);
-	var actualYMin = -$elm$core$Basics$abs(creditLimitK);
+var $author$project$Graph$drawYAxis = function (yMinK) {
 	var tickValues = A2(
 		$elm$core$List$map,
 		function (n) {
@@ -15645,12 +15685,12 @@ var $author$project$Graph$drawYAxis = function (creditLimitK) {
 		},
 		A2(
 			$elm$core$List$range,
-			$elm$core$Basics$ceiling(actualYMin / 5),
+			$elm$core$Basics$ceiling(yMinK / 5),
 			$elm$core$Basics$floor($author$project$Graph$yMax / 5)));
 	var ticks = A2(
 		$elm$core$List$map,
 		function (val) {
-			var y = $author$project$Graph$valueToY(val);
+			var y = A2($author$project$Graph$valueToY, yMinK, val);
 			return A2(
 				$elm$svg$Svg$g,
 				_List_Nil,
@@ -15692,75 +15732,68 @@ var $author$project$Graph$drawYAxis = function (creditLimitK) {
 					]));
 		},
 		tickValues);
+	var axisLine = A2(
+		$elm$svg$Svg$line,
+		_List_fromArray(
+			[
+				$elm$svg$Svg$Attributes$x1(
+				$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
+				$elm$svg$Svg$Attributes$y1(
+				$elm$core$String$fromFloat($author$project$Graph$marginTop)),
+				$elm$svg$Svg$Attributes$x2(
+				$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
+				$elm$svg$Svg$Attributes$y2(
+				$elm$core$String$fromFloat($author$project$Graph$graphHeight - $author$project$Graph$marginBottom)),
+				$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorAxis),
+				$elm$svg$Svg$Attributes$strokeWidth('1')
+			]),
+		_List_Nil);
 	return A2(
 		$elm$svg$Svg$g,
 		_List_Nil,
 		A2($elm$core$List$cons, axisLine, ticks));
 };
+var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $mdgriffith$elm_ui$Element$html = $mdgriffith$elm_ui$Internal$Model$unstyled;
+var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
 var $elm$svg$Svg$Attributes$rx = _VirtualDom_attribute('rx');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
 var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
+var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
 var $author$project$Graph$viewGraph = function (entries) {
 	var dayData = $author$project$Graph$buildDayData(entries);
-	var debtPoints = A2(
+	var debtValues = A2(
 		$elm$core$List$map,
 		function (d) {
-			return _Utils_Tuple2(
-				$author$project$Graph$dayToX(d.as),
-				$author$project$Graph$valueToY(d.bn));
+			return _Utils_Tuple2(d.as, d.bn);
 		},
 		dayData);
-	var debtPointsExtended = function () {
-		var _v3 = $elm$core$List$reverse(debtPoints);
-		if (_v3.b) {
-			var _v4 = _v3.a;
-			var lastX = _v4.a;
-			var lastY = _v4.b;
-			var rest = _v3.b;
-			return _Utils_ap(
-				$elm$core$List$reverse(rest),
-				_List_fromArray(
-					[
-						_Utils_Tuple2(lastX, lastY),
-						_Utils_Tuple2(
-						$author$project$Graph$dayToX($author$project$Graph$endDate),
-						lastY)
-					]));
-		} else {
-			return debtPoints;
-		}
-	}();
-	var debtLine = A2($author$project$Graph$drawStepLine, debtPointsExtended, $author$project$Graph$colorRed);
-	var earnedMoneyPoints = A2(
+	var earnedValues = A2(
 		$elm$core$List$map,
 		function (d) {
-			return _Utils_Tuple2(
-				$author$project$Graph$dayToX(d.as),
-				$author$project$Graph$valueToY(d.aN));
+			return _Utils_Tuple2(d.as, d.aN);
 		},
 		dayData);
-	var earnedMoneyPointsExtended = function () {
-		var _v1 = $elm$core$List$reverse(earnedMoneyPoints);
-		if (_v1.b) {
-			var _v2 = _v1.a;
-			var lastX = _v2.a;
-			var lastY = _v2.b;
-			var rest = _v1.b;
-			return _Utils_ap(
-				$elm$core$List$reverse(rest),
-				_List_fromArray(
-					[
-						_Utils_Tuple2(lastX, lastY),
-						_Utils_Tuple2(
-						$author$project$Graph$dayToX($author$project$Graph$endDate),
-						lastY)
-					]));
-		} else {
-			return earnedMoneyPoints;
-		}
-	}();
-	var earnedLine = A2($author$project$Graph$drawStepLine, earnedMoneyPointsExtended, $author$project$Graph$colorCerulean);
+	var creditValues = A2(
+		$elm$core$List$map,
+		function (d) {
+			return _Utils_Tuple2(d.as, -d.aL);
+		},
+		dayData);
+	var creditLimitK = A2(
+		$elm$core$Maybe$withDefault,
+		0.5,
+		A2(
+			$elm$core$Maybe$map,
+			function (e) {
+				return e.a8 / 1000;
+			},
+			$elm$core$List$head(
+				$elm$core$List$reverse(entries))));
+	var yMinK = -creditLimitK;
+	var creditPolygon = A4($author$project$Graph$drawStepPolygon, yMinK, 0, creditValues, $author$project$Graph$colorYellow);
+	var debtLine = A3($author$project$Graph$drawStepLine, yMinK, debtValues, $author$project$Graph$colorRed);
+	var earnedLine = A3($author$project$Graph$drawStepLine, yMinK, earnedValues, $author$project$Graph$colorCerulean);
 	var endLabels = function () {
 		var _v0 = $elm$core$List$reverse(dayData);
 		if (_v0.b) {
@@ -15779,7 +15812,7 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
 								$elm$core$String$fromFloat(
-									$author$project$Graph$valueToY(latest.a1))),
+									A2($author$project$Graph$valueToY, yMinK, latest.a1))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorGreen),
 								$elm$svg$Svg$Attributes$fontSize('11'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
@@ -15797,7 +15830,7 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
 								$elm$core$String$fromFloat(
-									$author$project$Graph$valueToY(latest.aN))),
+									A2($author$project$Graph$valueToY, yMinK, latest.aN))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorCerulean),
 								$elm$svg$Svg$Attributes$fontSize('11'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
@@ -15815,7 +15848,7 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
 								$elm$core$String$fromFloat(
-									$author$project$Graph$valueToY(-latest.aL))),
+									A2($author$project$Graph$valueToY, yMinK, -latest.aL))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorYellow),
 								$elm$svg$Svg$Attributes$fontSize('11'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
@@ -15833,7 +15866,7 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
 								$elm$core$String$fromFloat(
-									$author$project$Graph$valueToY(latest.bn))),
+									A2($author$project$Graph$valueToY, yMinK, latest.bn))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorRed),
 								$elm$svg$Svg$Attributes$fontSize('11'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
@@ -15848,35 +15881,13 @@ var $author$project$Graph$viewGraph = function (entries) {
 			return A2($elm$svg$Svg$g, _List_Nil, _List_Nil);
 		}
 	}();
-	var creditLimitK = A2(
-		$elm$core$Maybe$withDefault,
-		0.5,
-		A2(
-			$elm$core$Maybe$map,
-			function (e) {
-				return e.a8 / 1000;
-			},
-			$elm$core$List$head(
-				$elm$core$List$reverse(entries))));
-	var barWidth = ($author$project$Graph$plotWidth / $author$project$Graph$totalDays) * 0.6;
-	var checkingBars = A2(
+	var checkingValues = A2(
 		$elm$core$List$map,
 		function (d) {
-			var yVal = $author$project$Graph$valueToY(d.a1);
-			var y0 = $author$project$Graph$valueToY(0);
-			var x = $author$project$Graph$dayToX(d.as);
-			return A5($author$project$Graph$drawBar, x, barWidth, y0, yVal, $author$project$Graph$colorGreen);
+			return _Utils_Tuple2(d.as, d.a1);
 		},
 		dayData);
-	var creditBars = A2(
-		$elm$core$List$map,
-		function (d) {
-			var yVal = $author$project$Graph$valueToY(-d.aL);
-			var y0 = $author$project$Graph$valueToY(0);
-			var x = $author$project$Graph$dayToX(d.as) + (barWidth * 0.1);
-			return A5($author$project$Graph$drawBar, x, barWidth * 0.8, y0, yVal, $author$project$Graph$colorYellow);
-		},
-		dayData);
+	var checkingPolygon = A4($author$project$Graph$drawStepPolygon, yMinK, 0, checkingValues, $author$project$Graph$colorGreen);
 	return $mdgriffith$elm_ui$Element$html(
 		A2(
 			$elm$svg$Svg$svg,
@@ -15905,10 +15916,10 @@ var $author$project$Graph$viewGraph = function (entries) {
 							$elm$svg$Svg$Attributes$rx('12')
 						]),
 					_List_Nil),
-					$author$project$Graph$drawYAxis(creditLimitK),
-					$author$project$Graph$drawXAxis,
-					A2($elm$svg$Svg$g, _List_Nil, checkingBars),
-					A2($elm$svg$Svg$g, _List_Nil, creditBars),
+					$author$project$Graph$drawYAxis(yMinK),
+					$author$project$Graph$drawXAxis(yMinK),
+					checkingPolygon,
+					creditPolygon,
 					earnedLine,
 					debtLine,
 					endLabels

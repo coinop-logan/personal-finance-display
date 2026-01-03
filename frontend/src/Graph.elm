@@ -3,7 +3,7 @@ module Graph exposing (viewGraph)
 import Api.Types exposing (Entry)
 import Calculations exposing (dateToDays, incomingPayForEntry)
 import Element exposing (Element, html)
-import Svg exposing (Svg, svg, rect, line, text_, g, polyline)
+import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline)
 import Svg.Attributes as SA
 
 
@@ -33,9 +33,9 @@ plotWidth = graphWidth - marginLeft - marginRight
 plotHeight : Float
 plotHeight = graphHeight - marginTop - marginBottom
 
--- Date range: 2025-12-23 to 2026-01-31
+-- Date range: 2025-12-20 to 2026-01-31
 startDate : Int
-startDate = dateToDays "2025-12-23"
+startDate = dateToDays "2025-12-20"
 
 endDate : Int
 endDate = dateToDays "2026-01-31"
@@ -43,10 +43,7 @@ endDate = dateToDays "2026-01-31"
 totalDays : Int
 totalDays = endDate - startDate
 
--- Y axis: from -creditLimit (we'll use -0.5k as default) to 20k
-yMin : Float
-yMin = -0.5  -- in thousands
-
+-- Y axis: yMin will be calculated from credit limit, yMax is 20k
 yMax : Float
 yMax = 20.0  -- in thousands
 
@@ -83,6 +80,7 @@ type alias DayData =
     , earnedMoney : Float  -- checking + incoming pay, in k
     , creditDrawn : Float  -- credit limit - credit available, in k
     , personalDebt : Float  -- in k
+    , creditLimit : Float  -- in k
     }
 
 
@@ -104,6 +102,7 @@ buildDayData entries =
             , earnedMoney = (entry.checking + incomingPay) / 1000
             , creditDrawn = (entry.creditLimit - entry.creditAvailable) / 1000
             , personalDebt = entry.personalDebt / 1000
+            , creditLimit = entry.creditLimit / 1000
             }
     in
     entriesByDay
@@ -112,20 +111,20 @@ buildDayData entries =
 
 -- COORDINATE TRANSFORMS
 
-dayToX : Int -> Float
-dayToX day =
+dayToX : Float -> Int -> Float
+dayToX yMinK day =
     let
         dayOffset = toFloat (day - startDate)
         totalDaysFloat = toFloat totalDays
     in
     marginLeft + (dayOffset / totalDaysFloat) * plotWidth
 
-valueToY : Float -> Float
-valueToY valueK =
+valueToY : Float -> Float -> Float
+valueToY yMinK valueK =
     -- Y axis is inverted in SVG (0 at top)
     let
-        range = yMax - yMin
-        normalized = (valueK - yMin) / range
+        range = yMax - yMinK
+        normalized = (valueK - yMinK) / range
     in
     marginTop + plotHeight - (normalized * plotHeight)
 
@@ -180,39 +179,99 @@ dayLabel day =
 
 -- DRAWING PRIMITIVES
 
-drawBar : Float -> Float -> Float -> Float -> String -> Svg msg
-drawBar x1 width y1 y2 color =
-    rect
-        [ SA.x (String.fromFloat x1)
-        , SA.y (String.fromFloat (min y1 y2))
-        , SA.width (String.fromFloat width)
-        , SA.height (String.fromFloat (abs (y2 - y1)))
-        , SA.fill color
-        ]
-        []
-
-
-drawStepLine : List ( Float, Float ) -> String -> Svg msg
-drawStepLine points color =
-    if List.isEmpty points then
+{-| Draw a filled step polygon from baseline to values.
+    For bars: creates outline of all bars as one shape.
+    Goes: start at baseline, step up to first value, across to next day,
+    step to next value, etc., then back down to baseline.
+-}
+drawStepPolygon : Float -> Float -> List ( Int, Float ) -> String -> Svg msg
+drawStepPolygon yMinK baseline dayValues color =
+    if List.isEmpty dayValues then
         g [] []
     else
         let
-            -- Build step function path: for each point, draw horizontal then vertical
-            buildSteps : List ( Float, Float ) -> List ( Float, Float )
-            buildSteps pts =
+            y0 = valueToY yMinK baseline
+
+            -- Build the top edge of the polygon (stepping across days)
+            topEdge : List ( Int, Float ) -> List String
+            topEdge pts =
                 case pts of
                     [] -> []
-                    [ single ] -> [ single ]
-                    ( x1, y1 ) :: ( x2, y2 ) :: rest ->
-                        ( x1, y1 ) :: ( x2, y1 ) :: buildSteps (( x2, y2 ) :: rest)
+                    [ ( day, val ) ] ->
+                        let
+                            x1 = dayToX yMinK day
+                            x2 = dayToX yMinK (day + 1)
+                            y = valueToY yMinK val
+                        in
+                        [ String.fromFloat x1 ++ "," ++ String.fromFloat y
+                        , String.fromFloat x2 ++ "," ++ String.fromFloat y
+                        ]
+                    ( day, val ) :: rest ->
+                        let
+                            x1 = dayToX yMinK day
+                            x2 = dayToX yMinK (day + 1)
+                            y = valueToY yMinK val
+                        in
+                        (String.fromFloat x1 ++ "," ++ String.fromFloat y)
+                            :: (String.fromFloat x2 ++ "," ++ String.fromFloat y)
+                            :: topEdge rest
 
-            steppedPoints = buildSteps points
+            -- Get the x coordinates for baseline
+            firstDay = List.head dayValues |> Maybe.map Tuple.first |> Maybe.withDefault startDate
+            lastDay = List.reverse dayValues |> List.head |> Maybe.map Tuple.first |> Maybe.withDefault startDate
 
+            startX = dayToX yMinK firstDay
+            endX = dayToX yMinK (lastDay + 1)
+
+            -- Build full polygon: start at baseline, go up and across, come back to baseline
             pointsStr =
-                steppedPoints
-                    |> List.map (\( x, y ) -> String.fromFloat x ++ "," ++ String.fromFloat y)
+                [ String.fromFloat startX ++ "," ++ String.fromFloat y0 ]
+                    ++ topEdge dayValues
+                    ++ [ String.fromFloat endX ++ "," ++ String.fromFloat y0 ]
                     |> String.join " "
+        in
+        polygon
+            [ SA.points pointsStr
+            , SA.fill color
+            , SA.fillOpacity "0.8"
+            ]
+            []
+
+
+{-| Draw a step line (for earned money and debt lines).
+    Steps occur at day boundaries.
+-}
+drawStepLine : Float -> List ( Int, Float ) -> String -> Svg msg
+drawStepLine yMinK dayValues color =
+    if List.isEmpty dayValues then
+        g [] []
+    else
+        let
+            -- Build step points: for each day, draw from day start to day end at that value
+            buildPoints : List ( Int, Float ) -> List String
+            buildPoints pts =
+                case pts of
+                    [] -> []
+                    [ ( day, val ) ] ->
+                        let
+                            x1 = dayToX yMinK day
+                            x2 = dayToX yMinK (day + 1)
+                            y = valueToY yMinK val
+                        in
+                        [ String.fromFloat x1 ++ "," ++ String.fromFloat y
+                        , String.fromFloat x2 ++ "," ++ String.fromFloat y
+                        ]
+                    ( day, val ) :: rest ->
+                        let
+                            x1 = dayToX yMinK day
+                            x2 = dayToX yMinK (day + 1)
+                            y = valueToY yMinK val
+                        in
+                        (String.fromFloat x1 ++ "," ++ String.fromFloat y)
+                            :: (String.fromFloat x2 ++ "," ++ String.fromFloat y)
+                            :: buildPoints rest
+
+            pointsStr = buildPoints dayValues |> String.join " "
         in
         polyline
             [ SA.points pointsStr
@@ -225,10 +284,10 @@ drawStepLine points color =
 
 -- AXES
 
-drawXAxis : Svg msg
-drawXAxis =
+drawXAxis : Float -> Svg msg
+drawXAxis yMinK =
     let
-        y0 = valueToY 0
+        y0 = valueToY yMinK 0
 
         -- Main axis line
         axisLine =
@@ -247,7 +306,7 @@ drawXAxis =
             List.range startDate endDate
                 |> List.map (\day ->
                     let
-                        x = dayToX day
+                        x = dayToX yMinK day
                     in
                     g []
                         [ line
@@ -260,7 +319,7 @@ drawXAxis =
                             ]
                             []
                         , text_
-                            [ SA.x (String.fromFloat (x + (dayToX (day + 1) - x) / 2))
+                            [ SA.x (String.fromFloat (x + (dayToX yMinK (day + 1) - x) / 2))
                             , SA.y (String.fromFloat (y0 + 18))
                             , SA.fill colorText
                             , SA.fontSize "9"
@@ -274,20 +333,18 @@ drawXAxis =
 
 
 drawYAxis : Float -> Svg msg
-drawYAxis creditLimitK =
+drawYAxis yMinK =
     let
-        actualYMin = -(abs creditLimitK)
-
         -- Tick marks at every $5k
         tickValues =
-            List.range (ceiling (actualYMin / 5)) (floor (yMax / 5))
+            List.range (ceiling (yMinK / 5)) (floor (yMax / 5))
                 |> List.map (\n -> toFloat n * 5)
 
         ticks =
             tickValues
                 |> List.map (\val ->
                     let
-                        y = valueToY val
+                        y = valueToY yMinK val
                     in
                     g []
                         [ line
@@ -339,60 +396,36 @@ viewGraph entries =
                 |> Maybe.map (\e -> e.creditLimit / 1000)
                 |> Maybe.withDefault 0.5
 
-        barWidth = plotWidth / toFloat totalDays * 0.6
+        -- Y min is negative credit limit
+        yMinK = -creditLimitK
 
-        -- Checking bars (green, solid)
-        checkingBars =
+        -- Checking values (green filled polygon from 0 baseline)
+        checkingValues =
             dayData
-                |> List.map (\d ->
-                    let
-                        x = dayToX d.day
-                        y0 = valueToY 0
-                        yVal = valueToY d.checking
-                    in
-                    drawBar x barWidth y0 yVal colorGreen
-                )
+                |> List.map (\d -> ( d.day, d.checking ))
 
-        -- Credit drawn bars (yellow, going DOWN from x-axis)
-        creditBars =
+        checkingPolygon = drawStepPolygon yMinK 0 checkingValues colorGreen
+
+        -- Credit drawn values (yellow filled polygon going DOWN from 0)
+        creditValues =
             dayData
-                |> List.map (\d ->
-                    let
-                        x = dayToX d.day + barWidth * 0.1  -- Slight offset
-                        y0 = valueToY 0
-                        yVal = valueToY (-d.creditDrawn)  -- Negative to go below axis
-                    in
-                    drawBar x (barWidth * 0.8) y0 yVal colorYellow
-                )
+                |> List.map (\d -> ( d.day, -d.creditDrawn ))
+
+        creditPolygon = drawStepPolygon yMinK 0 creditValues colorYellow
 
         -- Earned money line (cerulean step line)
-        earnedMoneyPoints =
+        earnedValues =
             dayData
-                |> List.map (\d -> ( dayToX d.day, valueToY d.earnedMoney ))
+                |> List.map (\d -> ( d.day, d.earnedMoney ))
 
-        -- Extend to end of day range
-        earnedMoneyPointsExtended =
-            case List.reverse earnedMoneyPoints of
-                ( lastX, lastY ) :: rest ->
-                    List.reverse rest ++ [ ( lastX, lastY ), ( dayToX endDate, lastY ) ]
-                _ ->
-                    earnedMoneyPoints
-
-        earnedLine = drawStepLine earnedMoneyPointsExtended colorCerulean
+        earnedLine = drawStepLine yMinK earnedValues colorCerulean
 
         -- Personal debt line (red step line)
-        debtPoints =
+        debtValues =
             dayData
-                |> List.map (\d -> ( dayToX d.day, valueToY d.personalDebt ))
+                |> List.map (\d -> ( d.day, d.personalDebt ))
 
-        debtPointsExtended =
-            case List.reverse debtPoints of
-                ( lastX, lastY ) :: rest ->
-                    List.reverse rest ++ [ ( lastX, lastY ), ( dayToX endDate, lastY ) ]
-                _ ->
-                    debtPoints
-
-        debtLine = drawStepLine debtPointsExtended colorRed
+        debtLine = drawStepLine yMinK debtValues colorRed
 
         -- End labels for most recent values
         endLabels =
@@ -404,7 +437,7 @@ viewGraph entries =
                     g []
                         [ text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY latest.checking))
+                            , SA.y (String.fromFloat (valueToY yMinK latest.checking))
                             , SA.fill colorGreen
                             , SA.fontSize "11"
                             , SA.dominantBaseline "middle"
@@ -412,7 +445,7 @@ viewGraph entries =
                             [ Svg.text (formatK latest.checking) ]
                         , text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY latest.earnedMoney))
+                            , SA.y (String.fromFloat (valueToY yMinK latest.earnedMoney))
                             , SA.fill colorCerulean
                             , SA.fontSize "11"
                             , SA.dominantBaseline "middle"
@@ -420,7 +453,7 @@ viewGraph entries =
                             [ Svg.text (formatK latest.earnedMoney) ]
                         , text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY (-latest.creditDrawn)))
+                            , SA.y (String.fromFloat (valueToY yMinK (-latest.creditDrawn)))
                             , SA.fill colorYellow
                             , SA.fontSize "11"
                             , SA.dominantBaseline "middle"
@@ -428,7 +461,7 @@ viewGraph entries =
                             [ Svg.text (formatK latest.creditDrawn) ]
                         , text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY latest.personalDebt))
+                            , SA.y (String.fromFloat (valueToY yMinK latest.personalDebt))
                             , SA.fill colorRed
                             , SA.fontSize "11"
                             , SA.dominantBaseline "middle"
@@ -455,11 +488,11 @@ viewGraph entries =
                 ]
                 []
             , -- Axes
-              drawYAxis creditLimitK
-            , drawXAxis
+              drawYAxis yMinK
+            , drawXAxis yMinK
             , -- Data
-              g [] checkingBars
-            , g [] creditBars
+              checkingPolygon
+            , creditPolygon
             , earnedLine
             , debtLine
             , endLabels
