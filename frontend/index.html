@@ -22,8 +22,11 @@
     <div id="app"></div>
     <script src="elm.js"></script>
     <script>
-        // Get today's date in YYYY-MM-DD format
-        var today = new Date().toISOString().split('T')[0];
+        // Get today's date in YYYY-MM-DD format (local time, not UTC)
+        var now = new Date();
+        var today = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0');
 
         Elm.Main.init({
             node: document.getElementById('app'),
