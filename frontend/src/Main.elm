@@ -4,9 +4,11 @@ import Api.Types exposing (Entry, NewEntry, entryDecoder, newEntryEncoder)
 import Browser
 import Browser.Navigation as Nav
 import Calculations exposing (dateToDays, daysToDateString, dayOfWeekName, incomingPayForEntry)
-import Html exposing (Html, div, text, h1, h2, p, input, button, label, span)
-import Html.Attributes exposing (style, type_, value, placeholder, step, id, checked)
-import Html.Events exposing (onInput, onClick)
+import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Url exposing (Url)
@@ -151,24 +153,21 @@ type Msg
     = GotData (Result Http.Error (List Entry))
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
-    | UpdateForm FormField String
+    | UpdateChecking String
+    | UpdateCreditAvailable String
+    | UpdateHoursWorkedHours String
+    | UpdateHoursWorkedMinutes String
+    | UpdatePayPerHour String
+    | UpdateOtherIncoming String
+    | UpdatePersonalDebt String
+    | UpdateNote String
     | AdjustDate Int
-    | TogglePayCashed
+    | TogglePayCashed Bool
     | SubmitEntry
     | SubmitResult (Result Http.Error ())
     | EditEntry Entry
     | DeleteEntry Int
     | DeleteResult (Result Http.Error ())
-
-type FormField
-    = Checking
-    | CreditAvailable
-    | HoursWorkedHours
-    | HoursWorkedMinutes
-    | PayPerHour
-    | OtherIncoming
-    | PersonalDebt
-    | Note
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -204,33 +203,45 @@ update msg model =
                 Browser.External href ->
                     ( model, Nav.load href )
 
-        UpdateForm field val ->
-            let
-                f = model.form
-                newForm =
-                    case field of
-                        Checking -> { f | checking = val }
-                        CreditAvailable -> { f | creditAvailable = val }
-                        HoursWorkedHours -> { f | hoursWorkedHours = val }
-                        HoursWorkedMinutes -> { f | hoursWorkedMinutes = val }
-                        PayPerHour -> { f | payPerHour = val }
-                        OtherIncoming -> { f | otherIncoming = val }
-                        PersonalDebt -> { f | personalDebt = val }
-                        Note -> { f | note = val }
-            in
-            ( { model | form = newForm }, Cmd.none )
+        UpdateChecking val ->
+            let f = model.form in
+            ( { model | form = { f | checking = val } }, Cmd.none )
+
+        UpdateCreditAvailable val ->
+            let f = model.form in
+            ( { model | form = { f | creditAvailable = val } }, Cmd.none )
+
+        UpdateHoursWorkedHours val ->
+            let f = model.form in
+            ( { model | form = { f | hoursWorkedHours = val } }, Cmd.none )
+
+        UpdateHoursWorkedMinutes val ->
+            let f = model.form in
+            ( { model | form = { f | hoursWorkedMinutes = val } }, Cmd.none )
+
+        UpdatePayPerHour val ->
+            let f = model.form in
+            ( { model | form = { f | payPerHour = val } }, Cmd.none )
+
+        UpdateOtherIncoming val ->
+            let f = model.form in
+            ( { model | form = { f | otherIncoming = val } }, Cmd.none )
+
+        UpdatePersonalDebt val ->
+            let f = model.form in
+            ( { model | form = { f | personalDebt = val } }, Cmd.none )
+
+        UpdateNote val ->
+            let f = model.form in
+            ( { model | form = { f | note = val } }, Cmd.none )
 
         AdjustDate delta ->
-            let
-                f = model.form
-            in
+            let f = model.form in
             ( { model | form = { f | dateDays = f.dateDays + delta } }, Cmd.none )
 
-        TogglePayCashed ->
-            let
-                f = model.form
-            in
-            ( { model | form = { f | payCashed = not f.payCashed } }, Cmd.none )
+        TogglePayCashed val ->
+            let f = model.form in
+            ( { model | form = { f | payCashed = val } }, Cmd.none )
 
         SubmitEntry ->
             let
@@ -364,400 +375,334 @@ dataDecoder =
     Decode.list entryDecoder
 
 
+-- COLORS
+
+colors =
+    { background = rgb255 26 26 46
+    , cardBg = rgb255 37 37 66
+    , text = rgb255 238 238 238
+    , textMuted = rgb255 136 136 136
+    , accent = rgb255 79 172 254
+    , accentEnd = rgb255 0 242 254
+    , green = rgb255 74 222 128
+    , red = rgb255 255 107 107
+    , yellow = rgb255 251 191 36
+    , border = rgb255 51 51 51
+    }
+
+
 -- VIEW
 
 view : Model -> Browser.Document Msg
 view model =
     { title = "Finance Tracker"
-    , body = [ viewBody model ]
+    , body =
+        [ layout
+            [ Background.color colors.background
+            , Font.color colors.text
+            , Font.family [ Font.typeface "system-ui", Font.sansSerif ]
+            , padding 20
+            ]
+            (viewBody model)
+        ]
     }
 
-viewBody : Model -> Html Msg
+viewBody : Model -> Element Msg
 viewBody model =
-    div
-        [ style "background-color" "#1a1a2e"
-        , style "color" "#eee"
-        , style "min-height" "100vh"
-        , style "padding" "20px"
-        , style "font-family" "system-ui, -apple-system, sans-serif"
-        , style "box-sizing" "border-box"
-        ]
-        [ case model.page of
-            GraphPage ->
-                viewGraphPage model
+    case model.page of
+        GraphPage ->
+            viewGraphPage model
 
-            EntryPage ->
-                viewEntryPage model
-        ]
+        EntryPage ->
+            viewEntryPage model
 
-viewGraphPage : Model -> Html Msg
+viewGraphPage : Model -> Element Msg
 viewGraphPage model =
-    div []
-        [ h1
-            [ style "margin" "0 0 20px 0"
-            , style "font-weight" "300"
-            , style "font-size" "1.5em"
-            ]
-            [ text "Finance Tracker" ]
+    column [ spacing 20, width fill ]
+        [ el [ Font.size 24, Font.light ] (text "Finance Tracker")
         , viewGraphPlaceholder
         , viewMessageForMom
         ]
 
-viewEntryPage : Model -> Html Msg
+viewEntryPage : Model -> Element Msg
 viewEntryPage model =
-    div []
-        [ h1
-            [ style "margin" "0 0 20px 0"
-            , style "font-weight" "300"
-            , style "font-size" "1.5em"
-            ]
-            [ text "Data Entry" ]
+    column [ spacing 20, width fill ]
+        [ el [ Font.size 24, Font.light ] (text "Data Entry")
         , if model.loading then
-            p [] [ text "Loading..." ]
+            el [] (text "Loading...")
           else
-            div []
+            column [ spacing 20, width fill ]
                 [ viewEntryForm model
                 , viewRecentEntries model.entries
                 ]
         , case model.error of
             Just err ->
-                p [ style "color" "#ff6b6b", style "margin-top" "20px" ] [ text err ]
+                el [ Font.color colors.red ] (text err)
             Nothing ->
-                text ""
+                none
         ]
 
-viewEntryForm : Model -> Html Msg
+viewEntryForm : Model -> Element Msg
 viewEntryForm model =
-    div
-        [ style "background" "#252542"
-        , style "padding" "15px"
-        , style "border-radius" "12px"
-        , style "margin-bottom" "20px"
+    wrappedRow
+        [ Background.color colors.cardBg
+        , padding 15
+        , Border.rounded 12
+        , spacing 10
         ]
-        [ div
-            [ style "display" "flex"
-            , style "flex-wrap" "wrap"
-            , style "gap" "10px"
-            , style "align-items" "flex-end"
+        [ viewDatePicker model.form.dateDays
+        , viewCompactField "Checking" model.form.checking UpdateChecking 90
+        , viewCompactField "Credit Avail" model.form.creditAvailable UpdateCreditAvailable 90
+        , viewHoursMinutesField model.form.hoursWorkedHours model.form.hoursWorkedMinutes
+        , viewCompactField "$/hr" model.form.payPerHour UpdatePayPerHour 70
+        , viewCompactField "Other $" model.form.otherIncoming UpdateOtherIncoming 80
+        , viewCompactField "Pers. Debt" model.form.personalDebt UpdatePersonalDebt 80
+        , viewCompactField "Note" model.form.note UpdateNote 120
+        , viewCheckbox "Pay Cashed" model.form.payCashed TogglePayCashed
+        , Input.button
+            [ Background.gradient { angle = pi / 2, steps = [ colors.accent, colors.accentEnd ] }
+            , paddingXY 20 8
+            , Border.rounded 6
+            , Font.color colors.background
+            , Font.size 20
+            , Font.bold
             ]
-            [ viewDatePicker model.form.dateDays
-            , viewCompactField "Checking" "number" model.form.checking (UpdateForm Checking) "90px"
-            , viewCompactField "Credit Avail" "number" model.form.creditAvailable (UpdateForm CreditAvailable) "90px"
-            , viewHoursMinutesField model.form.hoursWorkedHours model.form.hoursWorkedMinutes
-            , viewCompactField "$/hr" "number" model.form.payPerHour (UpdateForm PayPerHour) "70px"
-            , viewCompactField "Other $" "number" model.form.otherIncoming (UpdateForm OtherIncoming) "80px"
-            , viewCompactField "Pers. Debt" "number" model.form.personalDebt (UpdateForm PersonalDebt) "80px"
-            , viewCompactField "Note" "text" model.form.note (UpdateForm Note) "120px"
-            , viewCheckbox "Pay Cashed" model.form.payCashed TogglePayCashed
-            , button
-                [ onClick SubmitEntry
-                , style "padding" "8px 20px"
-                , style "background" "linear-gradient(to right, #4facfe, #00f2fe)"
-                , style "border" "none"
-                , style "border-radius" "6px"
-                , style "color" "#1a1a2e"
-                , style "font-size" "1.2em"
-                , style "font-weight" "600"
-                , style "cursor" "pointer"
-                , style "height" "36px"
-                ]
-                [ text (if model.submitting then "..." else "+") ]
-            ]
+            { onPress = Just SubmitEntry
+            , label = text (if model.submitting then "..." else "+")
+            }
         ]
 
-viewDatePicker : Int -> Html Msg
+viewDatePicker : Int -> Element Msg
 viewDatePicker dateDays =
     let
         dateStr = daysToDateString dateDays
         weekday = dayOfWeekName dateDays
     in
-    div [ style "display" "flex", style "flex-direction" "column" ]
-        [ label
-            [ style "font-size" "0.7em"
-            , style "color" "#888"
-            , style "margin-bottom" "3px"
-            ]
-            [ text "Date" ]
-        , div [ style "display" "flex", style "align-items" "center", style "gap" "2px" ]
-            [ div [ style "display" "flex", style "flex-direction" "column" ]
-                [ button
-                    [ onClick (AdjustDate 1)
-                    , style "padding" "2px 8px"
-                    , style "background" "#1a1a2e"
-                    , style "border" "1px solid #333"
-                    , style "border-radius" "4px 0 0 0"
-                    , style "color" "#eee"
-                    , style "font-size" "0.7em"
-                    , style "cursor" "pointer"
-                    , style "line-height" "1"
+    column [ spacing 3 ]
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Date")
+        , row []
+            [ column []
+                [ Input.button
+                    [ Background.color colors.background
+                    , Border.width 1
+                    , Border.color colors.border
+                    , Border.roundEach { topLeft = 4, topRight = 0, bottomLeft = 0, bottomRight = 0 }
+                    , paddingXY 8 2
+                    , Font.size 11
                     ]
-                    [ text "▲" ]
-                , button
-                    [ onClick (AdjustDate -1)
-                    , style "padding" "2px 8px"
-                    , style "background" "#1a1a2e"
-                    , style "border" "1px solid #333"
-                    , style "border-top" "none"
-                    , style "border-radius" "0 0 0 4px"
-                    , style "color" "#eee"
-                    , style "font-size" "0.7em"
-                    , style "cursor" "pointer"
-                    , style "line-height" "1"
+                    { onPress = Just (AdjustDate 1)
+                    , label = text "▲"
+                    }
+                , Input.button
+                    [ Background.color colors.background
+                    , Border.widthEach { top = 0, right = 1, bottom = 1, left = 1 }
+                    , Border.color colors.border
+                    , Border.roundEach { topLeft = 0, topRight = 0, bottomLeft = 4, bottomRight = 0 }
+                    , paddingXY 8 2
+                    , Font.size 11
                     ]
-                    [ text "▼" ]
+                    { onPress = Just (AdjustDate -1)
+                    , label = text "▼"
+                    }
                 ]
-            , span
-                [ style "padding" "8px 12px"
-                , style "background" "#1a1a2e"
-                , style "border" "1px solid #333"
-                , style "border-radius" "0 4px 4px 0"
-                , style "color" "#eee"
-                , style "font-size" "0.9em"
-                , style "min-width" "100px"
-                , style "text-align" "center"
+            , el
+                [ Background.color colors.background
+                , Border.width 1
+                , Border.color colors.border
+                , Border.roundEach { topLeft = 0, topRight = 4, bottomLeft = 0, bottomRight = 4 }
+                , paddingXY 12 8
+                , Font.size 14
+                , width (px 120)
                 ]
-                [ span [ style "color" "#fff", style "font-weight" "bold" ] [ text weekday ]
-                , text (" " ++ dateStr)
-                ]
+                ( row [ spacing 5 ]
+                    [ el [ Font.bold, Font.color (rgb 1 1 1) ] (text weekday)
+                    , text dateStr
+                    ]
+                )
             ]
         ]
 
 
-viewCompactField : String -> String -> String -> (String -> Msg) -> String -> Html Msg
-viewCompactField labelText inputType val toMsg width =
-    div [ style "display" "flex", style "flex-direction" "column" ]
-        [ label
-            [ style "font-size" "0.7em"
-            , style "color" "#888"
-            , style "margin-bottom" "3px"
+viewCompactField : String -> String -> (String -> Msg) -> Int -> Element Msg
+viewCompactField labelText val toMsg widthPx =
+    column [ spacing 3 ]
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text labelText)
+        , Input.text
+            [ Background.color colors.background
+            , Border.width 1
+            , Border.color colors.border
+            , Border.rounded 4
+            , Font.size 14
+            , width (px widthPx)
+            , paddingXY 8 8
             ]
-            [ text labelText ]
-        , input
-            [ type_ inputType
-            , value val
-            , onInput toMsg
-            , style "width" width
-            , style "padding" "8px"
-            , style "background" "#1a1a2e"
-            , style "border" "1px solid #333"
-            , style "border-radius" "4px"
-            , style "color" "#eee"
-            , style "font-size" "0.9em"
-            , style "box-sizing" "border-box"
-            , if inputType == "number" then step "0.01" else style "" ""
-            ]
-            []
+            { onChange = toMsg
+            , text = val
+            , placeholder = Nothing
+            , label = Input.labelHidden labelText
+            }
         ]
 
 
-viewHoursMinutesField : String -> String -> Html Msg
+viewHoursMinutesField : String -> String -> Element Msg
 viewHoursMinutesField hoursVal minutesVal =
-    div [ style "display" "flex", style "flex-direction" "column" ]
-        [ label
-            [ style "font-size" "0.7em"
-            , style "color" "#888"
-            , style "margin-bottom" "3px"
-            ]
-            [ text "Hours Today" ]
-        , div [ style "display" "flex", style "align-items" "center" ]
-            [ input
-                [ type_ "number"
-                , value hoursVal
-                , onInput (UpdateForm HoursWorkedHours)
-                , style "width" "28px"
-                , style "padding" "8px 4px"
-                , style "background" "#1a1a2e"
-                , style "border" "1px solid #333"
-                , style "border-radius" "4px 0 0 4px"
-                , style "color" "#eee"
-                , style "font-size" "0.9em"
-                , style "box-sizing" "border-box"
-                , style "text-align" "center"
-                , step "1"
+    column [ spacing 3 ]
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Hours Today")
+        , row []
+            [ Input.text
+                [ Background.color colors.background
+                , Border.widthEach { top = 1, right = 0, bottom = 1, left = 1 }
+                , Border.color colors.border
+                , Border.roundEach { topLeft = 4, topRight = 0, bottomLeft = 4, bottomRight = 0 }
+                , Font.size 14
+                , width (px 35)
+                , paddingXY 4 8
                 ]
-                []
-            , span
-                [ style "padding" "8px 2px"
-                , style "background" "#1a1a2e"
-                , style "border-top" "1px solid #333"
-                , style "border-bottom" "1px solid #333"
-                , style "color" "#888"
-                , style "font-size" "0.9em"
+                { onChange = UpdateHoursWorkedHours
+                , text = hoursVal
+                , placeholder = Nothing
+                , label = Input.labelHidden "Hours"
+                }
+            , el
+                [ Background.color colors.background
+                , Border.widthEach { top = 1, right = 0, bottom = 1, left = 0 }
+                , Border.color colors.border
+                , paddingXY 2 8
+                , Font.color colors.textMuted
+                , Font.size 14
                 ]
-                [ text ":" ]
-            , input
-                [ type_ "number"
-                , value minutesVal
-                , onInput (UpdateForm HoursWorkedMinutes)
-                , style "width" "28px"
-                , style "padding" "8px 4px"
-                , style "background" "#1a1a2e"
-                , style "border" "1px solid #333"
-                , style "border-radius" "0 4px 4px 0"
-                , style "color" "#eee"
-                , style "font-size" "0.9em"
-                , style "box-sizing" "border-box"
-                , style "text-align" "center"
-                , step "1"
+                (text ":")
+            , Input.text
+                [ Background.color colors.background
+                , Border.widthEach { top = 1, right = 1, bottom = 1, left = 0 }
+                , Border.color colors.border
+                , Border.roundEach { topLeft = 0, topRight = 4, bottomLeft = 0, bottomRight = 4 }
+                , Font.size 14
+                , width (px 35)
+                , paddingXY 4 8
                 ]
-                []
+                { onChange = UpdateHoursWorkedMinutes
+                , text = minutesVal
+                , placeholder = Nothing
+                , label = Input.labelHidden "Minutes"
+                }
             ]
         ]
 
 
-viewCheckbox : String -> Bool -> Msg -> Html Msg
-viewCheckbox labelText isChecked toggleMsg =
-    div
-        [ style "display" "flex"
-        , style "flex-direction" "column"
-        , style "align-items" "center"
-        ]
-        [ label
-            [ style "font-size" "0.7em"
-            , style "color" "#888"
-            , style "margin-bottom" "3px"
-            ]
-            [ text labelText ]
-        , input
-            [ type_ "checkbox"
-            , checked isChecked
-            , onClick toggleMsg
-            , style "width" "20px"
-            , style "height" "20px"
-            , style "cursor" "pointer"
-            , style "accent-color" "#4facfe"
-            ]
-            []
+viewCheckbox : String -> Bool -> (Bool -> Msg) -> Element Msg
+viewCheckbox labelText isChecked toMsg =
+    column [ spacing 3, centerX ]
+        [ el [ Font.size 11, Font.color colors.textMuted, centerX ] (text labelText)
+        , Input.checkbox []
+            { onChange = toMsg
+            , icon = Input.defaultCheckbox
+            , checked = isChecked
+            , label = Input.labelHidden labelText
+            }
         ]
 
-viewRecentEntries : List Entry -> Html Msg
+viewRecentEntries : List Entry -> Element Msg
 viewRecentEntries entries =
     let
         recent = List.take 5 (List.reverse entries)
     in
     if List.isEmpty recent then
-        text ""
+        none
     else
-        div [ style "margin-bottom" "20px" ]
-            [ h2
-                [ style "font-weight" "300"
-                , style "font-size" "1em"
-                , style "margin-bottom" "10px"
-                , style "color" "#888"
-                ]
-                [ text "Recent Entries" ]
-            , div [] (List.map (viewRecentEntry entries) recent)
+        column [ spacing 10, width fill ]
+            [ el [ Font.size 16, Font.light, Font.color colors.textMuted ] (text "Recent Entries")
+            , column [ spacing 8, width fill ] (List.map (viewRecentEntry entries) recent)
             ]
 
-viewRecentEntry : List Entry -> Entry -> Html Msg
+viewRecentEntry : List Entry -> Entry -> Element Msg
 viewRecentEntry allEntries entry =
     let
         incomingPay = incomingPayForEntry entry allEntries
         entryDays = dateToDays entry.date
         weekday = dayOfWeekName entryDays
     in
-    div
-        [ style "display" "flex"
-        , style "flex-direction" "column"
-        , style "padding" "10px"
-        , style "background" "#252542"
-        , style "border-radius" "6px"
-        , style "margin-bottom" "8px"
-        , style "font-size" "0.85em"
+    column
+        [ Background.color colors.cardBg
+        , Border.rounded 6
+        , padding 10
+        , spacing 5
+        , width fill
+        , Font.size 13
         ]
-        [ div
-            [ style "display" "flex"
-            , style "justify-content" "space-between"
-            , style "align-items" "center"
-            ]
-            [ div [ style "display" "flex", style "gap" "15px", style "flex-wrap" "wrap", style "flex" "1" ]
-                [ span [ style "color" "#888" ]
-                    [ span [ style "color" "#fff", style "font-weight" "bold" ] [ text weekday ]
-                    , text (" " ++ entry.date)
+        [ row [ width fill, spacing 15 ]
+            [ wrappedRow [ spacing 15, width fill ]
+                [ row [ spacing 5 ]
+                    [ el [ Font.bold, Font.color (rgb 1 1 1) ] (text weekday)
+                    , el [ Font.color colors.textMuted ] (text entry.date)
                     ]
-                , span [] [ text ("Chk: $" ++ formatAmount entry.checking) ]
-                , span [] [ text ("Crd: $" ++ formatAmount entry.creditAvailable) ]
+                , text ("Chk: $" ++ formatAmount entry.checking)
+                , text ("Crd: $" ++ formatAmount entry.creditAvailable)
                 , if entry.hoursWorked > 0 then
-                    span [ style "color" "#4ade80" ]
-                        [ text (formatAmount entry.hoursWorked ++ "h @ $" ++ formatAmount entry.payPerHour) ]
+                    el [ Font.color colors.green ]
+                        (text (formatAmount entry.hoursWorked ++ "h @ $" ++ formatAmount entry.payPerHour))
                   else
-                    text ""
+                    none
                 , if entry.otherIncoming > 0 then
-                    span [ style "color" "#4ade80" ] [ text ("+$" ++ formatAmount entry.otherIncoming) ]
+                    el [ Font.color colors.green ] (text ("+$" ++ formatAmount entry.otherIncoming))
                   else
-                    text ""
+                    none
                 , if entry.payCashed then
-                    span [ style "color" "#fbbf24" ] [ text "[Cashed]" ]
+                    el [ Font.color colors.yellow ] (text "[Cashed]")
                   else
-                    text ""
+                    none
                 , if entry.note /= "" then
-                    span [ style "color" "#888", style "font-style" "italic" ] [ text entry.note ]
+                    el [ Font.color colors.textMuted, Font.italic ] (text entry.note)
                   else
-                    text ""
+                    none
                 ]
-            , div [ style "display" "flex", style "gap" "5px" ]
-                [ button
-                    [ onClick (EditEntry entry)
-                    , style "background" "transparent"
-                    , style "border" "none"
-                    , style "color" "#4facfe"
-                    , style "font-size" "1em"
-                    , style "cursor" "pointer"
-                    , style "padding" "0 5px"
-                    ]
-                    [ text "Edit" ]
-                , button
-                    [ onClick (DeleteEntry entry.id)
-                    , style "background" "transparent"
-                    , style "border" "none"
-                    , style "color" "#ff6b6b"
-                    , style "font-size" "1.2em"
-                    , style "cursor" "pointer"
-                    , style "padding" "0 5px"
-                    ]
-                    [ text "X" ]
+            , row [ spacing 5 ]
+                [ Input.button [ Font.color colors.accent, Font.size 14 ]
+                    { onPress = Just (EditEntry entry)
+                    , label = text "Edit"
+                    }
+                , Input.button [ Font.color colors.red, Font.size 18 ]
+                    { onPress = Just (DeleteEntry entry.id)
+                    , label = text "X"
+                    }
                 ]
             ]
-        , div [ style "margin-top" "5px", style "padding-top" "5px", style "border-top" "1px solid #333" ]
-            [ span [ style "color" "#888", style "font-size" "0.9em" ] [ text "Incoming: " ]
-            , span [ style "color" "#4ade80", style "font-weight" "500" ]
-                [ text ("$" ++ formatAmount incomingPay) ]
+        , row
+            [ Border.widthEach { top = 1, right = 0, bottom = 0, left = 0 }
+            , Border.color colors.border
+            , paddingEach { top = 5, right = 0, bottom = 0, left = 0 }
+            , width fill
+            , Font.size 12
+            ]
+            [ el [ Font.color colors.textMuted ] (text "Incoming: ")
+            , el [ Font.color colors.green, Font.medium ] (text ("$" ++ formatAmount incomingPay))
             ]
         ]
 
 
-viewGraphPlaceholder : Html Msg
+viewGraphPlaceholder : Element Msg
 viewGraphPlaceholder =
-    div
-        [ style "background" "#252542"
-        , style "padding" "40px"
-        , style "border-radius" "12px"
-        , style "text-align" "center"
-        , style "color" "#888"
-        , style "margin-bottom" "20px"
+    el
+        [ Background.color colors.cardBg
+        , padding 40
+        , Border.rounded 12
+        , Font.color colors.textMuted
+        , centerX
         ]
-        [ text "[ TODO: Graph will go here ]" ]
+        (text "[ TODO: Graph will go here ]")
 
-viewMessageForMom : Html Msg
+viewMessageForMom : Element Msg
 viewMessageForMom =
-    div
-        [ style "background" "linear-gradient(to right, #667eea, #764ba2)"
-        , style "padding" "20px"
-        , style "border-radius" "12px"
-        , style "text-align" "center"
-        , style "margin-top" "20px"
+    column
+        [ Background.gradient { angle = pi / 2, steps = [ rgb255 102 126 234, rgb255 118 75 162 ] }
+        , padding 20
+        , Border.rounded 12
+        , spacing 10
+        , centerX
+        , width fill
         ]
-        [ p
-            [ style "margin" "0"
-            , style "font-size" "1.1em"
-            ]
-            [ text "Hi Mom! Logan wanted me to tell you:" ]
-        , p
-            [ style "margin" "10px 0 0 0"
-            , style "font-size" "1.3em"
-            , style "font-weight" "500"
-            ]
-            [ text "Your knee and ankle will get better and better!" ]
+        [ el [ centerX, Font.size 18 ] (text "Hi Mom! Logan wanted me to tell you:")
+        , el [ centerX, Font.size 21, Font.medium ] (text "Your knee and ankle will get better and better!")
         ]
 
 formatAmount : Float -> String
