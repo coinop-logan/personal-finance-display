@@ -435,7 +435,6 @@ viewGraphPage model =
             el [] (text "Loading...")
           else
             Graph.viewGraph model.entries
-        , viewMessageForMom
         ]
 
 viewEntryPage : Model -> Element Msg
@@ -694,20 +693,6 @@ viewRecentEntry allEntries entry =
             ]
         ]
 
-
-viewMessageForMom : Element Msg
-viewMessageForMom =
-    column
-        [ Background.gradient { angle = pi / 2, steps = [ rgb255 102 126 234, rgb255 118 75 162 ] }
-        , padding 20
-        , Border.rounded 12
-        , spacing 10
-        , centerX
-        , width fill
-        ]
-        [ el [ centerX, Font.size 18 ] (text "Hi Mom! Logan wanted me to tell you:")
-        , el [ centerX, Font.size 21, Font.medium ] (text "Your knee and ankle will get better and better!")
-        ]
 
 formatAmount : Float -> String
 formatAmount amount =
