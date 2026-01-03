@@ -2719,7 +2719,7 @@ var _VirtualDom_mapEventTuple = F2(function(func, tuple)
 var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
-		H: func(record.H),
+		I: func(record.I),
 		aS: record.aS,
 		aP: record.aP
 	}
@@ -2989,7 +2989,7 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		// 3 = Custom
 
 		var value = result.a;
-		var message = !tag ? value : tag < 3 ? value.a : value.H;
+		var message = !tag ? value : tag < 3 ? value.a : value.I;
 		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.aS;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
@@ -5482,7 +5482,7 @@ var $author$project$Calculations$dateToDays = function (dateStr) {
 	}
 };
 var $author$project$Main$emptyForm = function (todayDays) {
-	return {am: '', an: '', L: todayDays, U: '', V: '', at: '', au: '', ax: false, ay: '', az: ''};
+	return {am: '', an: '', G: todayDays, O: '', P: '', at: '', au: '', ax: false, ay: '', az: ''};
 };
 var $author$project$Main$GotData = function (a) {
 	return {$: 0, a: a};
@@ -6399,7 +6399,7 @@ var $author$project$Main$init = F3(
 			{
 				ap: _List_Nil,
 				C: $elm$core$Maybe$Nothing,
-				d: $author$project$Main$emptyForm(todayDays),
+				c: $author$project$Main$emptyForm(todayDays),
 				aL: key,
 				af: true,
 				aw: $author$project$Main$urlToPage(url),
@@ -6518,7 +6518,7 @@ var $author$project$Calculations$daysToDateString = function (days) {
 	return A3($author$project$Calculations$formatDate, year, month, day);
 };
 var $author$project$Main$DeleteResult = function (a) {
-	return {$: 9, a: a};
+	return {$: 10, a: a};
 };
 var $elm$http$Http$expectBytesResponse = F2(
 	function (toMsg, toResult) {
@@ -6555,9 +6555,9 @@ var $author$project$Main$formFromLastEntry = F2(
 		return {
 			am: $elm$core$String$fromFloat(entry.am),
 			an: $elm$core$String$fromFloat(entry.an),
-			L: todayDays,
-			U: '',
-			V: '',
+			G: todayDays,
+			O: '',
+			P: '',
 			at: '',
 			au: $elm$core$String$fromFloat(entry.au),
 			ax: false,
@@ -6585,6 +6585,24 @@ var $author$project$Main$formFromEntries = F2(
 			return $author$project$Main$emptyForm(todayDays);
 		}
 	});
+var $elm$core$Basics$round = _Basics_round;
+var $author$project$Main$formFromEntry = function (entry) {
+	var totalMinutes = $elm$core$Basics$round(entry.ar * 60);
+	var minutes = totalMinutes % 60;
+	var hours = (totalMinutes / 60) | 0;
+	return {
+		am: $elm$core$String$fromFloat(entry.am),
+		an: $elm$core$String$fromFloat(entry.an),
+		G: $author$project$Calculations$dateToDays(entry.ao),
+		O: ((hours > 0) || (minutes > 0)) ? $elm$core$String$fromInt(hours) : '',
+		P: ((hours > 0) || (minutes > 0)) ? $elm$core$String$fromInt(minutes) : '',
+		at: entry.at,
+		au: $elm$core$String$fromFloat(entry.au),
+		ax: entry.ax,
+		ay: $elm$core$String$fromFloat(entry.ay),
+		az: $elm$core$String$fromFloat(entry.az)
+	};
+};
 var $author$project$Main$httpErrorToString = function (err) {
 	switch (err.$) {
 		case 0:
@@ -6754,11 +6772,11 @@ var $author$project$Main$update = F2(
 				var result = msg.a;
 				if (!result.$) {
 					var entries = result.a;
-					var updatedForm = (model.d.am === '') ? A2($author$project$Main$formFromEntries, model.aE, entries) : model.d;
+					var updatedForm = (model.c.am === '') ? A2($author$project$Main$formFromEntries, model.aE, entries) : model.c;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{ap: entries, C: $elm$core$Maybe$Nothing, d: updatedForm, af: false}),
+							{ap: entries, C: $elm$core$Maybe$Nothing, c: updatedForm, af: false}),
 						$elm$core$Platform$Cmd$none);
 				} else {
 					var err = result.a;
@@ -6800,7 +6818,7 @@ var $author$project$Main$update = F2(
 			case 3:
 				var field = msg.a;
 				var val = msg.b;
-				var f = model.d;
+				var f = model.c;
 				var newForm = function () {
 					switch (field) {
 						case 0:
@@ -6814,11 +6832,11 @@ var $author$project$Main$update = F2(
 						case 2:
 							return _Utils_update(
 								f,
-								{U: val});
+								{O: val});
 						case 3:
 							return _Utils_update(
 								f,
-								{V: val});
+								{P: val});
 						case 4:
 							return _Utils_update(
 								f,
@@ -6840,43 +6858,43 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{d: newForm}),
+						{c: newForm}),
 					$elm$core$Platform$Cmd$none);
 			case 4:
 				var delta = msg.a;
-				var f = model.d;
+				var f = model.c;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							d: _Utils_update(
+							c: _Utils_update(
 								f,
-								{L: f.L + delta})
+								{G: f.G + delta})
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 5:
-				var f = model.d;
+				var f = model.c;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{
-							d: _Utils_update(
+							c: _Utils_update(
 								f,
 								{ax: !f.ax})
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 6:
-				var f = model.d;
+				var f = model.c;
 				var hours = A2(
 					$elm$core$Maybe$withDefault,
 					0,
-					$elm$core$String$toFloat(f.U));
+					$elm$core$String$toFloat(f.O));
 				var minutes = A2(
 					$elm$core$Maybe$withDefault,
 					0,
-					$elm$core$String$toFloat(f.V));
+					$elm$core$String$toFloat(f.P));
 				var totalHours = hours + (minutes / 60);
-				var dateStr = $author$project$Calculations$daysToDateString(f.L);
+				var dateStr = $author$project$Calculations$daysToDateString(f.G);
 				var maybeEntry = A3(
 					$elm$core$Maybe$map2,
 					F2(
@@ -6927,7 +6945,7 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							model,
 							{
-								d: $author$project$Main$emptyForm(model.aE),
+								c: $author$project$Main$emptyForm(model.aE),
 								X: false
 							}),
 						$author$project$Main$fetchData);
@@ -6944,6 +6962,15 @@ var $author$project$Main$update = F2(
 						$elm$core$Platform$Cmd$none);
 				}
 			case 8:
+				var entry = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							c: $author$project$Main$formFromEntry(entry)
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 9:
 				var entryId = msg.a;
 				return _Utils_Tuple2(
 					model,
@@ -7394,51 +7421,51 @@ var $author$project$Main$viewEntryForm = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$author$project$Main$viewDatePicker(model.d.L),
+						$author$project$Main$viewDatePicker(model.c.G),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Checking',
 						'number',
-						model.d.am,
+						model.c.am,
 						$author$project$Main$UpdateForm(0),
 						'90px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Credit Avail',
 						'number',
-						model.d.an,
+						model.c.an,
 						$author$project$Main$UpdateForm(1),
 						'90px'),
-						A2($author$project$Main$viewHoursMinutesField, model.d.U, model.d.V),
+						A2($author$project$Main$viewHoursMinutesField, model.c.O, model.c.P),
 						A5(
 						$author$project$Main$viewCompactField,
 						'$/hr',
 						'number',
-						model.d.ay,
+						model.c.ay,
 						$author$project$Main$UpdateForm(4),
 						'70px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Other $',
 						'number',
-						model.d.au,
+						model.c.au,
 						$author$project$Main$UpdateForm(5),
 						'80px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Pers. Debt',
 						'number',
-						model.d.az,
+						model.c.az,
 						$author$project$Main$UpdateForm(6),
 						'80px'),
 						A5(
 						$author$project$Main$viewCompactField,
 						'Note',
 						'text',
-						model.d.at,
+						model.c.at,
 						$author$project$Main$UpdateForm(7),
 						'120px'),
-						A3($author$project$Main$viewCheckbox, 'Pay Cashed', model.d.ax, $author$project$Main$TogglePayCashed),
+						A3($author$project$Main$viewCheckbox, 'Pay Cashed', model.c.ax, $author$project$Main$TogglePayCashed),
 						A2(
 						$elm$html$Html$button,
 						_List_fromArray(
@@ -7597,9 +7624,11 @@ var $elm$core$List$take = F2(
 		return A3($elm$core$List$takeFast, 0, n, list);
 	});
 var $author$project$Main$DeleteEntry = function (a) {
+	return {$: 9, a: a};
+};
+var $author$project$Main$EditEntry = function (a) {
 	return {$: 8, a: a};
 };
-var $elm$core$Basics$round = _Basics_round;
 var $author$project$Main$formatAmount = function (amount) {
 	var intPart = $elm$core$Basics$floor(amount);
 	var decPart = $elm$core$Basics$round((amount - intPart) * 100);
@@ -7852,21 +7881,48 @@ var $author$project$Main$viewRecentEntry = F2(
 										])) : $elm$html$Html$text('')
 								])),
 							A2(
-							$elm$html$Html$button,
+							$elm$html$Html$div,
 							_List_fromArray(
 								[
-									$elm$html$Html$Events$onClick(
-									$author$project$Main$DeleteEntry(entry.bc)),
-									A2($elm$html$Html$Attributes$style, 'background', 'transparent'),
-									A2($elm$html$Html$Attributes$style, 'border', 'none'),
-									A2($elm$html$Html$Attributes$style, 'color', '#ff6b6b'),
-									A2($elm$html$Html$Attributes$style, 'font-size', '1.2em'),
-									A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
-									A2($elm$html$Html$Attributes$style, 'padding', '0 5px')
+									A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+									A2($elm$html$Html$Attributes$style, 'gap', '5px')
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text('X')
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick(
+											$author$project$Main$EditEntry(entry)),
+											A2($elm$html$Html$Attributes$style, 'background', 'transparent'),
+											A2($elm$html$Html$Attributes$style, 'border', 'none'),
+											A2($elm$html$Html$Attributes$style, 'color', '#4facfe'),
+											A2($elm$html$Html$Attributes$style, 'font-size', '1em'),
+											A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
+											A2($elm$html$Html$Attributes$style, 'padding', '0 5px')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('Edit')
+										])),
+									A2(
+									$elm$html$Html$button,
+									_List_fromArray(
+										[
+											$elm$html$Html$Events$onClick(
+											$author$project$Main$DeleteEntry(entry.bc)),
+											A2($elm$html$Html$Attributes$style, 'background', 'transparent'),
+											A2($elm$html$Html$Attributes$style, 'border', 'none'),
+											A2($elm$html$Html$Attributes$style, 'color', '#ff6b6b'),
+											A2($elm$html$Html$Attributes$style, 'font-size', '1.2em'),
+											A2($elm$html$Html$Attributes$style, 'cursor', 'pointer'),
+											A2($elm$html$Html$Attributes$style, 'padding', '0 5px')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text('X')
+										]))
 								]))
 						])),
 					A2(

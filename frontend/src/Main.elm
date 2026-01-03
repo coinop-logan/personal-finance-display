@@ -89,6 +89,27 @@ formFromLastEntry todayDays entry =
     }
 
 
+formFromEntry : Entry -> EntryForm
+formFromEntry entry =
+    let
+        -- Convert decimal hours back to hours:minutes
+        totalMinutes = round (entry.hoursWorked * 60)
+        hours = totalMinutes // 60
+        minutes = remainderBy 60 totalMinutes
+    in
+    { dateDays = dateToDays entry.date
+    , checking = String.fromFloat entry.checking
+    , creditAvailable = String.fromFloat entry.creditAvailable
+    , hoursWorkedHours = if hours > 0 || minutes > 0 then String.fromInt hours else ""
+    , hoursWorkedMinutes = if hours > 0 || minutes > 0 then String.fromInt minutes else ""
+    , payPerHour = String.fromFloat entry.payPerHour
+    , otherIncoming = String.fromFloat entry.otherIncoming
+    , personalDebt = String.fromFloat entry.personalDebt
+    , note = entry.note
+    , payCashed = entry.payCashed
+    }
+
+
 formFromEntries : Int -> List Entry -> EntryForm
 formFromEntries todayDays entries =
     case List.reverse entries |> List.head of
@@ -135,6 +156,7 @@ type Msg
     | TogglePayCashed
     | SubmitEntry
     | SubmitResult (Result Http.Error ())
+    | EditEntry Entry
     | DeleteEntry Int
     | DeleteResult (Result Http.Error ())
 
@@ -266,6 +288,9 @@ update msg model =
                       }
                     , Cmd.none
                     )
+
+        EditEntry entry ->
+            ( { model | form = formFromEntry entry }, Cmd.none )
 
         DeleteEntry entryId ->
             ( model, deleteEntry entryId )
@@ -670,16 +695,28 @@ viewRecentEntry allEntries entry =
                   else
                     text ""
                 ]
-            , button
-                [ onClick (DeleteEntry entry.id)
-                , style "background" "transparent"
-                , style "border" "none"
-                , style "color" "#ff6b6b"
-                , style "font-size" "1.2em"
-                , style "cursor" "pointer"
-                , style "padding" "0 5px"
+            , div [ style "display" "flex", style "gap" "5px" ]
+                [ button
+                    [ onClick (EditEntry entry)
+                    , style "background" "transparent"
+                    , style "border" "none"
+                    , style "color" "#4facfe"
+                    , style "font-size" "1em"
+                    , style "cursor" "pointer"
+                    , style "padding" "0 5px"
+                    ]
+                    [ text "Edit" ]
+                , button
+                    [ onClick (DeleteEntry entry.id)
+                    , style "background" "transparent"
+                    , style "border" "none"
+                    , style "color" "#ff6b6b"
+                    , style "font-size" "1.2em"
+                    , style "cursor" "pointer"
+                    , style "padding" "0 5px"
+                    ]
+                    [ text "X" ]
                 ]
-                [ text "X" ]
             ]
         , div [ style "margin-top" "5px", style "padding-top" "5px", style "border-top" "1px solid #333" ]
             [ span [ style "color" "#888", style "font-size" "0.9em" ] [ text "Incoming: " ]
