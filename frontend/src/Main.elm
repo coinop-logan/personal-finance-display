@@ -3,7 +3,7 @@ module Main exposing (main)
 import Api.Types exposing (Entry, NewEntry, entryDecoder, newEntryEncoder)
 import Browser
 import Browser.Navigation as Nav
-import Calculations exposing (dateToDays, daysToDateString, incomingPayForEntry)
+import Calculations exposing (dateToDays, daysToDateString, dayOfWeekName, incomingPayForEntry)
 import Html exposing (Html, div, text, h1, h2, p, input, button, label, span)
 import Html.Attributes exposing (style, type_, value, placeholder, step, id, checked)
 import Html.Events exposing (onInput, onClick)
@@ -433,6 +433,7 @@ viewDatePicker : Int -> Html Msg
 viewDatePicker dateDays =
     let
         dateStr = daysToDateString dateDays
+        weekday = dayOfWeekName dateDays
     in
     div [ style "display" "flex", style "flex-direction" "column" ]
         [ label
@@ -452,7 +453,9 @@ viewDatePicker dateDays =
                 , style "min-width" "100px"
                 , style "text-align" "center"
                 ]
-                [ text dateStr ]
+                [ span [ style "color" "#fff", style "font-weight" "bold" ] [ text weekday ]
+                , text (" " ++ dateStr)
+                ]
             , div [ style "display" "flex", style "flex-direction" "column" ]
                 [ button
                     [ onClick (AdjustDate 1)
@@ -559,6 +562,8 @@ viewRecentEntry : List Entry -> Entry -> Html Msg
 viewRecentEntry allEntries entry =
     let
         incomingPay = incomingPayForEntry entry allEntries
+        entryDays = dateToDays entry.date
+        weekday = dayOfWeekName entryDays
     in
     div
         [ style "display" "flex"
@@ -575,7 +580,10 @@ viewRecentEntry allEntries entry =
             , style "align-items" "center"
             ]
             [ div [ style "display" "flex", style "gap" "15px", style "flex-wrap" "wrap", style "flex" "1" ]
-                [ span [ style "color" "#888" ] [ text entry.date ]
+                [ span [ style "color" "#888" ]
+                    [ span [ style "color" "#fff", style "font-weight" "bold" ] [ text weekday ]
+                    , text (" " ++ entry.date)
+                    ]
                 , span [] [ text ("Chk: $" ++ formatAmount entry.checking) ]
                 , span [] [ text ("Crd: $" ++ formatAmount entry.creditAvailable) ]
                 , if entry.hoursWorked > 0 then

@@ -3,6 +3,7 @@ module Calculations exposing
     , dateToWeekNumber
     , dateToDays
     , daysToDateString
+    , dayOfWeekName
     )
 
 {-| Financial calculations module.
@@ -37,6 +38,24 @@ daysToDateString days =
         ( year, month, day ) = dateFromDays days
     in
     formatDate year month day
+
+
+{-| Get three-letter weekday name from days since epoch.
+2000-01-01 was a Saturday.
+-}
+dayOfWeekName : Int -> String
+dayOfWeekName days =
+    -- 2000-01-01 (day 0) was Saturday
+    -- So: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
+    case modBy 7 days of
+        0 -> "Sat"
+        1 -> "Sun"
+        2 -> "Mon"
+        3 -> "Tue"
+        4 -> "Wed"
+        5 -> "Thu"
+        6 -> "Fri"
+        _ -> "???"  -- Should never happen
 
 
 parseDate : String -> Maybe ( Int, Int, Int )

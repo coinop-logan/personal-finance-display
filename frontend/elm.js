@@ -7130,11 +7130,33 @@ var $author$project$Main$viewCompactField = F5(
 var $author$project$Main$AdjustDate = function (a) {
 	return {$: 4, a: a};
 };
+var $author$project$Calculations$dayOfWeekName = function (days) {
+	var _v0 = A2($elm$core$Basics$modBy, 7, days);
+	switch (_v0) {
+		case 0:
+			return 'Sat';
+		case 1:
+			return 'Sun';
+		case 2:
+			return 'Mon';
+		case 3:
+			return 'Tue';
+		case 4:
+			return 'Wed';
+		case 5:
+			return 'Thu';
+		case 6:
+			return 'Fri';
+		default:
+			return '???';
+	}
+};
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
 var $elm$html$Html$span = _VirtualDom_node('span');
 var $author$project$Main$viewDatePicker = function (dateDays) {
+	var weekday = $author$project$Calculations$dayOfWeekName(dateDays);
 	var dateStr = $author$project$Calculations$daysToDateString(dateDays);
 	return A2(
 		$elm$html$Html$div,
@@ -7182,7 +7204,18 @@ var $author$project$Main$viewDatePicker = function (dateDays) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text(dateStr)
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										A2($elm$html$Html$Attributes$style, 'color', '#fff'),
+										A2($elm$html$Html$Attributes$style, 'font-weight', 'bold')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(weekday)
+									])),
+								$elm$html$Html$text(' ' + dateStr)
 							])),
 						A2(
 						$elm$html$Html$div,
@@ -7663,6 +7696,8 @@ var $author$project$Calculations$incomingPayForEntry = F2(
 var $author$project$Main$viewRecentEntry = F2(
 	function (allEntries, entry) {
 		var incomingPay = A2($author$project$Calculations$incomingPayForEntry, entry, allEntries);
+		var entryDays = $author$project$Calculations$dateToDays(entry.L);
+		var weekday = $author$project$Calculations$dayOfWeekName(entryDays);
 		return A2(
 			$elm$html$Html$div,
 			_List_fromArray(
@@ -7706,7 +7741,18 @@ var $author$project$Main$viewRecentEntry = F2(
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text(entry.L)
+											A2(
+											$elm$html$Html$span,
+											_List_fromArray(
+												[
+													A2($elm$html$Html$Attributes$style, 'color', '#fff'),
+													A2($elm$html$Html$Attributes$style, 'font-weight', 'bold')
+												]),
+											_List_fromArray(
+												[
+													$elm$html$Html$text(weekday)
+												])),
+											$elm$html$Html$text(' ' + entry.L)
 										])),
 									A2(
 									$elm$html$Html$span,
