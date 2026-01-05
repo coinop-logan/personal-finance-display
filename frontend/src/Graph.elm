@@ -462,21 +462,31 @@ viewGraph entries =
                         labelHeight = 20  -- Approximate height for spacing
 
                         -- Build list of labels with their desired Y positions
-                        -- Filter out debt label if value is zero
+                        -- Filter out labels when their value is zero
                         rawLabels =
                             [ { desiredY = valueToY yMinK latest.checking
                               , color = colorGreen
                               , text = formatK latest.checking
                               }
-                            , { desiredY = valueToY yMinK latest.earnedMoney
-                              , color = colorEarnedLine
-                              , text = formatK latest.earnedMoney
-                              }
-                            , { desiredY = valueToY yMinK (-latest.creditDrawn)
-                              , color = colorYellow
-                              , text = formatK latest.creditDrawn
-                              }
                             ]
+                            ++ (if latest.earnedMoney > 0 then
+                                    [ { desiredY = valueToY yMinK latest.earnedMoney
+                                      , color = colorEarnedLine
+                                      , text = formatK latest.earnedMoney
+                                      }
+                                    ]
+                                else
+                                    []
+                               )
+                            ++ (if latest.creditDrawn > 0 then
+                                    [ { desiredY = valueToY yMinK (-latest.creditDrawn)
+                                      , color = colorYellow
+                                      , text = formatK latest.creditDrawn
+                                      }
+                                    ]
+                                else
+                                    []
+                               )
                             ++ (if latest.personalDebt > 0 then
                                     [ { desiredY = valueToY yMinK latest.personalDebt
                                       , color = colorRed
