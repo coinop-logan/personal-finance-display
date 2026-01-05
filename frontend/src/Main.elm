@@ -12,6 +12,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Http
 import Json.Decode as Decode exposing (Decoder)
+import Time
 import Url exposing (Url)
 
 
@@ -156,6 +157,7 @@ init flags url key =
 
 type Msg
     = GotData (Result Http.Error (List Entry))
+    | Tick Time.Posix
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
     | UpdateChecking String
@@ -197,6 +199,9 @@ update msg model =
                     ( { model | loading = False, error = Just (httpErrorToString err) }
                     , Cmd.none
                     )
+
+        Tick _ ->
+            ( model, fetchData )
 
         UrlChanged url ->
             ( { model | page = urlToPage url }, Cmd.none )
@@ -348,8 +353,13 @@ httpErrorToString err =
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model.page of
+        GraphPage ->
+            Time.every 1000 Tick
+
+        EntryPage ->
+            Sub.none
 
 
 -- HTTP
