@@ -15346,61 +15346,8 @@ var $author$project$Graph$colorGreen = '#4ade80';
 var $author$project$Graph$colorRed = '#ff6b6b';
 var $author$project$Graph$colorYellow = '#fbbf24';
 var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
-var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
-var $elm$svg$Svg$g = $elm$svg$Svg$trustedNode('g');
-var $author$project$Graph$graphHeight = 1080;
-var $author$project$Graph$graphWidth = 1920;
-var $elm$svg$Svg$line = $elm$svg$Svg$trustedNode('line');
-var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
-var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
-var $elm$svg$Svg$Attributes$x1 = _VirtualDom_attribute('x1');
-var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
-var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
-var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
-var $author$project$Graph$drawDebugMarker = function () {
-	var size = 15;
-	var cy = $author$project$Graph$graphHeight - 20;
-	var cx = $author$project$Graph$graphWidth - 20;
-	return A2(
-		$elm$svg$Svg$g,
-		_List_Nil,
-		_List_fromArray(
-			[
-				A2(
-				$elm$svg$Svg$line,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$x1(
-						$elm$core$String$fromFloat(cx - size)),
-						$elm$svg$Svg$Attributes$y1(
-						$elm$core$String$fromFloat(cy)),
-						$elm$svg$Svg$Attributes$x2(
-						$elm$core$String$fromFloat(cx + size)),
-						$elm$svg$Svg$Attributes$y2(
-						$elm$core$String$fromFloat(cy)),
-						$elm$svg$Svg$Attributes$stroke('#ff00ff'),
-						$elm$svg$Svg$Attributes$strokeWidth('3')
-					]),
-				_List_Nil),
-				A2(
-				$elm$svg$Svg$line,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$x1(
-						$elm$core$String$fromFloat(cx)),
-						$elm$svg$Svg$Attributes$y1(
-						$elm$core$String$fromFloat(cy - size)),
-						$elm$svg$Svg$Attributes$x2(
-						$elm$core$String$fromFloat(cx)),
-						$elm$svg$Svg$Attributes$y2(
-						$elm$core$String$fromFloat(cy + size)),
-						$elm$svg$Svg$Attributes$stroke('#ff00ff'),
-						$elm$svg$Svg$Attributes$strokeWidth('3')
-					]),
-				_List_Nil)
-			]));
-}();
 var $author$project$Graph$marginLeft = 60;
+var $author$project$Graph$graphWidth = 1920;
 var $author$project$Graph$marginRight = 100;
 var $author$project$Graph$plotWidth = ($author$project$Graph$graphWidth - $author$project$Graph$marginLeft) - $author$project$Graph$marginRight;
 var $author$project$Graph$startDate = $author$project$Calculations$dateToDays('2025-12-20');
@@ -15413,9 +15360,14 @@ var $author$project$Graph$dayToX = F2(
 		return $author$project$Graph$marginLeft + ((dayOffset / totalDaysFloat) * $author$project$Graph$plotWidth);
 	});
 var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
+var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
+var $elm$svg$Svg$g = $elm$svg$Svg$trustedNode('g');
 var $elm$svg$Svg$Attributes$points = _VirtualDom_attribute('points');
 var $elm$svg$Svg$polyline = $elm$svg$Svg$trustedNode('polyline');
+var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
+var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
 var $author$project$Graph$marginTop = 30;
+var $author$project$Graph$graphHeight = 1080;
 var $author$project$Graph$marginBottom = 50;
 var $author$project$Graph$plotHeight = ($author$project$Graph$graphHeight - $author$project$Graph$marginTop) - $author$project$Graph$marginBottom;
 var $author$project$Graph$yMax = 20.0;
@@ -15657,11 +15609,16 @@ var $author$project$Graph$dayLabel = function (day) {
 		$elm$core$String$fromInt(dayNum));
 };
 var $elm$svg$Svg$Attributes$fontSize = _VirtualDom_attribute('font-size');
+var $elm$svg$Svg$line = $elm$svg$Svg$trustedNode('line');
 var $elm$svg$Svg$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$svg$Svg$Attributes$textAnchor = _VirtualDom_attribute('text-anchor');
 var $elm$svg$Svg$text_ = $elm$svg$Svg$trustedNode('text');
 var $elm$svg$Svg$Attributes$x = _VirtualDom_attribute('x');
+var $elm$svg$Svg$Attributes$x1 = _VirtualDom_attribute('x1');
+var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
 var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
+var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
+var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
 var $author$project$Graph$drawXAxis = function (yMinK) {
 	var y0 = A2($author$project$Graph$valueToY, yMinK, 0);
 	var dayTicks = A2(
@@ -15987,8 +15944,7 @@ var $author$project$Graph$viewGraph = function (entries) {
 					creditPolygon,
 					earnedLine,
 					debtLine,
-					endLabels,
-					$author$project$Graph$drawDebugMarker
+					endLabels
 				])));
 };
 var $author$project$Main$viewGraphPage = function (model) {

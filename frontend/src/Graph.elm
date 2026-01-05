@@ -405,38 +405,6 @@ drawYAxis yMinK =
     g [] (axisLine :: ticks)
 
 
--- DEBUG MARKER
-
-drawDebugMarker : Svg msg
-drawDebugMarker =
-    let
-        -- Draw a small cross/plus near the lower right corner
-        cx = graphWidth - 20
-        cy = graphHeight - 20
-        size = 15
-    in
-    g []
-        [ line
-            [ SA.x1 (String.fromFloat (cx - size))
-            , SA.y1 (String.fromFloat cy)
-            , SA.x2 (String.fromFloat (cx + size))
-            , SA.y2 (String.fromFloat cy)
-            , SA.stroke "#ff00ff"
-            , SA.strokeWidth "3"
-            ]
-            []
-        , line
-            [ SA.x1 (String.fromFloat cx)
-            , SA.y1 (String.fromFloat (cy - size))
-            , SA.x2 (String.fromFloat cx)
-            , SA.y2 (String.fromFloat (cy + size))
-            , SA.stroke "#ff00ff"
-            , SA.strokeWidth "3"
-            ]
-            []
-        ]
-
-
 -- MAIN GRAPH VIEW
 
 viewGraph : List Entry -> Element msg
@@ -551,6 +519,4 @@ viewGraph entries =
             , earnedLine
             , debtLine
             , endLabels
-            , -- Debug marker near lower right
-              drawDebugMarker
             ]
