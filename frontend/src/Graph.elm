@@ -5,6 +5,7 @@ import Calculations exposing (dateToDays, incomingPayForEntry)
 import Element exposing (Element, html)
 import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline)
 import Svg.Attributes as SA
+import Time
 
 
 -- CONSTANTS (1920x1080 full HD)
@@ -405,10 +406,59 @@ drawYAxis yMinK =
     g [] (axisLine :: ticks)
 
 
+-- CLOCK
+
+alaskaZone : Time.Zone
+alaskaZone =
+    Time.customZone (-9 * 60) []
+
+formatMilitaryTime : Time.Zone -> Time.Posix -> String
+formatMilitaryTime zone time =
+    let
+        hour = Time.toHour zone time
+        minute = Time.toMinute zone time
+        second = Time.toSecond zone time
+        pad n = if n < 10 then "0" ++ String.fromInt n else String.fromInt n
+    in
+    pad hour ++ ":" ++ pad minute ++ ":" ++ pad second
+
+drawClock : Time.Posix -> Svg msg
+drawClock time =
+    let
+        timeStr = formatMilitaryTime alaskaZone time
+        clockX = graphWidth - marginRight - 10
+        clockY = marginTop + 20
+        bgPadX = 15
+        bgPadY = 10
+        bgWidth = 160
+        bgHeight = 55
+    in
+    g []
+        [ rect
+            [ SA.x (String.fromFloat (clockX - bgWidth + bgPadX))
+            , SA.y (String.fromFloat (clockY - bgPadY - 30))
+            , SA.width (String.fromFloat bgWidth)
+            , SA.height (String.fromFloat bgHeight)
+            , SA.rx "8"
+            , SA.fill "rgba(0, 0, 0, 0.35)"
+            ]
+            []
+        , text_
+            [ SA.x (String.fromFloat clockX)
+            , SA.y (String.fromFloat clockY)
+            , SA.fill "#eeeeee"
+            , SA.fontSize "48"
+            , SA.fontFamily "monospace"
+            , SA.textAnchor "end"
+            ]
+            [ Svg.text timeStr ]
+        ]
+
+
 -- MAIN GRAPH VIEW
 
-viewGraph : List Entry -> Element msg
-viewGraph entries =
+viewGraph : List Entry -> Time.Posix -> Element msg
+viewGraph entries currentTime =
     let
         dayData = buildDayData entries
 
@@ -555,8 +605,10 @@ viewGraph entries =
             , -- Axes and labels (second to last)
               drawYAxis yMinK
             , drawXAxis yMinK
-            , -- End labels (last, so they're always visible)
+            , -- End labels
               endLabels
+            , -- Clock (last, so it's always on top)
+              drawClock currentTime
             ]
 
 

@@ -62,6 +62,7 @@ type alias Model =
     , submitting : Bool
     , key : Nav.Key
     , todayDays : Int
+    , currentTime : Time.Posix
     }
 
 emptyForm : Int -> EntryForm
@@ -148,6 +149,7 @@ init flags url key =
       , submitting = False
       , key = key
       , todayDays = todayDays
+      , currentTime = Time.millisToPosix 0
       }
     , fetchData
     )
@@ -200,8 +202,8 @@ update msg model =
                     , Cmd.none
                     )
 
-        Tick _ ->
-            ( model, fetchData )
+        Tick time ->
+            ( { model | currentTime = time }, fetchData )
 
         UrlChanged url ->
             ( { model | page = urlToPage url }, Cmd.none )
@@ -452,7 +454,7 @@ viewGraphPage model =
     if model.loading then
         el [] (text "Loading...")
     else
-        Graph.viewGraph model.entries
+        Graph.viewGraph model.entries model.currentTime
 
 viewEntryPage : Model -> Element Msg
 viewEntryPage model =
