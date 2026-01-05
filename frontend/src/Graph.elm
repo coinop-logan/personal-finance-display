@@ -69,7 +69,7 @@ colorAxis : String
 colorAxis = "#555"
 
 colorBackground : String
-colorBackground = "#c8d4e8"
+colorBackground = "#6b7aa0"
 
 
 -- GRAPH DATA

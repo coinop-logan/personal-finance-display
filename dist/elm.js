@@ -15659,7 +15659,7 @@ var $author$project$Graph$buildDayData = function (entries) {
 		},
 		entriesByDay);
 };
-var $author$project$Graph$colorBackground = '#c8d4e8';
+var $author$project$Graph$colorBackground = '#6b7aa0';
 var $author$project$Graph$colorCerulean = '#00acee';
 var $author$project$Graph$colorGreen = '#4ade80';
 var $author$project$Graph$colorRed = '#ff6b6b';
