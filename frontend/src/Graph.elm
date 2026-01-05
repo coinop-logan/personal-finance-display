@@ -452,47 +452,72 @@ viewGraph entries =
         debtLine = drawStepLine yMinK debtValues colorRed
 
         -- End labels for most recent values (positioned just right of last data point)
+        -- Labels are sorted by Y position and pushed down if they would overlap
         endLabels =
             case List.reverse dayData of
                 latest :: _ ->
                     let
                         -- Position label just after the last day's bar ends
                         labelX = dayToX yMinK (latest.day + 1) + 10
+                        labelHeight = 20  -- Approximate height for spacing
+
+                        -- Build list of labels with their desired Y positions
+                        -- Filter out debt label if value is zero
+                        rawLabels =
+                            [ { desiredY = valueToY yMinK latest.checking
+                              , color = colorGreen
+                              , text = formatK latest.checking
+                              }
+                            , { desiredY = valueToY yMinK latest.earnedMoney
+                              , color = colorEarnedLine
+                              , text = formatK latest.earnedMoney
+                              }
+                            , { desiredY = valueToY yMinK (-latest.creditDrawn)
+                              , color = colorYellow
+                              , text = formatK latest.creditDrawn
+                              }
+                            ]
+                            ++ (if latest.personalDebt > 0 then
+                                    [ { desiredY = valueToY yMinK latest.personalDebt
+                                      , color = colorRed
+                                      , text = formatK latest.personalDebt
+                                      }
+                                    ]
+                                else
+                                    []
+                               )
+
+                        -- Sort by desired Y (top to bottom in SVG coordinates)
+                        sortedLabels = List.sortBy .desiredY rawLabels
+
+                        -- Push labels down if they would overlap
+                        adjustedLabels =
+                            List.foldl
+                                (\label acc ->
+                                    let
+                                        prevBottom =
+                                            case List.head (List.reverse acc) of
+                                                Just prev -> prev.actualY + labelHeight
+                                                Nothing -> 0
+                                        actualY = max label.desiredY prevBottom
+                                    in
+                                    acc ++ [ { label | actualY = actualY } ]
+                                )
+                                []
+                                (List.map (\l -> { desiredY = l.desiredY, color = l.color, text = l.text, actualY = l.desiredY }) sortedLabels)
+
+                        renderLabel lbl =
+                            text_
+                                [ SA.x (String.fromFloat labelX)
+                                , SA.y (String.fromFloat lbl.actualY)
+                                , SA.fill lbl.color
+                                , SA.fontSize "18"
+                                , SA.dominantBaseline "middle"
+                                ]
+                                [ Svg.text lbl.text ]
                     in
                     g [ SA.textRendering "optimizeSpeed" ]
-                        [ text_
-                            [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK latest.checking))
-                            , SA.fill colorGreen
-                            , SA.fontSize "18"
-                            , SA.dominantBaseline "middle"
-                            ]
-                            [ Svg.text (formatK latest.checking) ]
-                        , text_
-                            [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK latest.earnedMoney))
-                            , SA.fill colorEarnedLine
-                            , SA.fontSize "18"
-                            , SA.dominantBaseline "middle"
-                            ]
-                            [ Svg.text (formatK latest.earnedMoney) ]
-                        , text_
-                            [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK (-latest.creditDrawn)))
-                            , SA.fill colorYellow
-                            , SA.fontSize "18"
-                            , SA.dominantBaseline "middle"
-                            ]
-                            [ Svg.text (formatK latest.creditDrawn) ]
-                        , text_
-                            [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK latest.personalDebt))
-                            , SA.fill colorRed
-                            , SA.fontSize "18"
-                            , SA.dominantBaseline "middle"
-                            ]
-                            [ Svg.text (formatK latest.personalDebt) ]
-                        ]
+                        (List.map renderLabel adjustedLabels)
                 _ ->
                     g [] []
     in
