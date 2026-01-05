@@ -2,7 +2,10 @@ module Graph exposing (viewGraph, viewMiniGraph)
 
 import Api.Types exposing (Entry)
 import Calculations exposing (dateToDays, incomingPayForEntry)
-import Element exposing (Element, html)
+import Element exposing (Element, html, el, text, row, inFront, alignRight, alignTop, padding, paddingEach, rgb255, rgba)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
 import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline)
 import Svg.Attributes as SA
 import Time
@@ -422,38 +425,6 @@ formatMilitaryTime zone time =
     in
     pad hour ++ ":" ++ pad minute ++ ":" ++ pad second
 
-drawClock : Time.Posix -> Svg msg
-drawClock time =
-    let
-        timeStr = formatMilitaryTime alaskaZone time
-        clockX = graphWidth - marginRight - 10
-        clockY = marginTop + 20
-        bgPadX = 15
-        bgPadY = 10
-        bgWidth = 160
-        bgHeight = 55
-    in
-    g []
-        [ rect
-            [ SA.x (String.fromFloat (clockX - bgWidth + bgPadX))
-            , SA.y (String.fromFloat (clockY - bgPadY - 30))
-            , SA.width (String.fromFloat bgWidth)
-            , SA.height (String.fromFloat bgHeight)
-            , SA.rx "8"
-            , SA.fill "rgba(0, 0, 0, 0.35)"
-            ]
-            []
-        , text_
-            [ SA.x (String.fromFloat clockX)
-            , SA.y (String.fromFloat clockY)
-            , SA.fill "#eeeeee"
-            , SA.fontSize "48"
-            , SA.fontFamily "monospace"
-            , SA.textAnchor "end"
-            ]
-            [ Svg.text timeStr ]
-        ]
-
 
 -- MAIN GRAPH VIEW
 
@@ -580,36 +551,57 @@ viewGraph entries currentTime =
                         (List.map renderLabel adjustedLabels)
                 _ ->
                     g [] []
-    in
-    html <|
-        svg
-            [ SA.width (String.fromFloat graphWidth)
-            , SA.height (String.fromFloat graphHeight)
-            , SA.viewBox ("0 0 " ++ String.fromFloat graphWidth ++ " " ++ String.fromFloat graphHeight)
-            , SA.shapeRendering "crispEdges"
-            ]
-            [ -- Background
-              rect
-                [ SA.x "0"
-                , SA.y "0"
-                , SA.width (String.fromFloat graphWidth)
-                , SA.height (String.fromFloat graphHeight)
-                , SA.fill colorBackground
+
+        -- Clock overlay using Elm UI
+        timeStr = formatMilitaryTime alaskaZone currentTime
+
+        clockOverlay =
+            el
+                [ alignRight
+                , alignTop
+                , paddingEach { top = 10, right = round marginRight + 10, bottom = 0, left = 0 }
                 ]
-                []
-            , -- Data (drawn first so axes render on top)
-              checkingPolygon
-            , creditPolygon
-            , earnedLine
-            , debtLine
-            , -- Axes and labels (second to last)
-              drawYAxis yMinK
-            , drawXAxis yMinK
-            , -- End labels
-              endLabels
-            , -- Clock (last, so it's always on top)
-              drawClock currentTime
-            ]
+                (el
+                    [ Background.color (rgba 0 0 0 0.35)
+                    , Border.rounded 8
+                    , padding 10
+                    , Font.family [ Font.monospace ]
+                    , Font.size 48
+                    , Font.color (rgb255 238 238 238)
+                    ]
+                    (text timeStr)
+                )
+
+        svgGraph =
+            html <|
+                svg
+                    [ SA.width (String.fromFloat graphWidth)
+                    , SA.height (String.fromFloat graphHeight)
+                    , SA.viewBox ("0 0 " ++ String.fromFloat graphWidth ++ " " ++ String.fromFloat graphHeight)
+                    , SA.shapeRendering "crispEdges"
+                    ]
+                    [ -- Background
+                      rect
+                        [ SA.x "0"
+                        , SA.y "0"
+                        , SA.width (String.fromFloat graphWidth)
+                        , SA.height (String.fromFloat graphHeight)
+                        , SA.fill colorBackground
+                        ]
+                        []
+                    , -- Data (drawn first so axes render on top)
+                      checkingPolygon
+                    , creditPolygon
+                    , earnedLine
+                    , debtLine
+                    , -- Axes and labels (second to last)
+                      drawYAxis yMinK
+                    , drawXAxis yMinK
+                    , -- End labels
+                      endLabels
+                    ]
+    in
+    el [ inFront clockOverlay ] svgGraph
 
 
 -- MINI GRAPH (for entry page)
