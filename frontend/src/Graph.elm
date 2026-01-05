@@ -63,10 +63,10 @@ colorRed : String
 colorRed = "#ff6b6b"
 
 colorText : String
-colorText = "#888"
+colorText = "#222"
 
 colorAxis : String
-colorAxis = "#555"
+colorAxis = "#000"
 
 colorBackground : String
 colorBackground = "#6b7aa0"
@@ -451,12 +451,13 @@ viewGraph entries =
 
         debtLine = drawStepLine yMinK debtValues colorRed
 
-        -- End labels for most recent values
+        -- End labels for most recent values (positioned just right of last data point)
         endLabels =
             case List.reverse dayData of
                 latest :: _ ->
                     let
-                        labelX = graphWidth - marginRight + 10
+                        -- Position label just after the last day's bar ends
+                        labelX = dayToX yMinK (latest.day + 1) + 10
                     in
                     g []
                         [ text_
@@ -510,13 +511,14 @@ viewGraph entries =
                 , SA.fill colorBackground
                 ]
                 []
-            , -- Axes
-              drawYAxis yMinK
-            , drawXAxis yMinK
-            , -- Data
+            , -- Data (drawn first so axes render on top)
               checkingPolygon
             , creditPolygon
             , earnedLine
             , debtLine
-            , endLabels
+            , -- Axes and labels (second to last)
+              drawYAxis yMinK
+            , drawXAxis yMinK
+            , -- End labels (last, so they're always visible)
+              endLabels
             ]
