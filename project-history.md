@@ -97,3 +97,59 @@ git add -A && git commit -m "..." && git push
 ### Cleanup
 
 - Removed `server/server.py` (replaced by Rust)
+
+---
+
+## Session 4
+
+**Date:** 2026-01-05
+
+### Summary
+
+Major feature development session focusing on the graph visualization and UX improvements.
+
+### Key Changes
+
+**payCashed Logic Fix:**
+- Fixed `incomingPayForEntry` algorithm in `Calculations.elm`
+- Now correctly checks if ANY entry in current week has `payCashed=true`, then counts only hours from current week (starting Sunday)
+
+**Edit Button:**
+- Added edit button next to delete in entry rows
+- Clicking populates the form with that row's data for editing (leverages existing upsert behavior)
+
+**elm-ui Refactor:**
+- Migrated entire frontend from inline HTML/CSS to `mdgriffith/elm-ui`
+- Cleaner layout code with proper Element-based structure
+
+**Credit Limit Field:**
+- Added `creditLimit` to Entry type (Rust and Elm)
+- New form field between credit available and hours worked
+
+**Graph Implementation (1920x1080 Full HD):**
+- SVG-based visualization for Raspberry Pi display
+- X-axis: dates from Dec 20 to Jan 31, with weekday+day labels (e.g., "M6")
+- Y-axis: dollar amounts in "k" notation ($5k, $10k, etc.), extends below zero for credit
+- Green filled bars: checking balance (above x-axis)
+- Yellow filled bars: credit drawn (below x-axis, calculated as creditLimit - creditAvailable)
+- Cerulean step line: earned money (checking + incoming pay)
+- Red step line: personal debt
+- End labels on right margin showing current values
+
+**Graph Technical Details:**
+- Gap handling: when data points are non-consecutive, extends previous value horizontally to prevent sloping lines
+- Step-based rendering: values remain constant until next data point
+- No padding/header on graph page (fills entire 1920x1080 display)
+- 25 recent entries shown on entry page (up from 5)
+
+### Files Modified
+
+- `frontend/src/Graph.elm` - New graph rendering module
+- `frontend/src/Main.elm` - elm-ui refactor, edit button, credit limit field
+- `frontend/src/Calculations.elm` - payCashed logic fix
+- `backend/src/types.rs` - Added creditLimit field
+- `frontend/src/Api/Types.elm` - Regenerated via elm_rs
+
+### Deployment
+
+All changes deployed via `make deploy` with ARM64 cross-compilation for Pi.
