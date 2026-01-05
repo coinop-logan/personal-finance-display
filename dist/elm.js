@@ -16099,6 +16099,7 @@ var $author$project$Graph$drawYAxis = function (yMinK) {
 var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $mdgriffith$elm_ui$Element$html = $mdgriffith$elm_ui$Internal$Model$unstyled;
 var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
+var $elm$svg$Svg$Attributes$shapeRendering = _VirtualDom_attribute('shape-rendering');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
 var $elm$svg$Svg$Attributes$textRendering = _VirtualDom_attribute('text-rendering');
 var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
@@ -16253,7 +16254,8 @@ var $author$project$Graph$viewGraph = function (entries) {
 					$elm$svg$Svg$Attributes$height(
 					$elm$core$String$fromFloat($author$project$Graph$graphHeight)),
 					$elm$svg$Svg$Attributes$viewBox(
-					'0 0 ' + ($elm$core$String$fromFloat($author$project$Graph$graphWidth) + (' ' + $elm$core$String$fromFloat($author$project$Graph$graphHeight))))
+					'0 0 ' + ($elm$core$String$fromFloat($author$project$Graph$graphWidth) + (' ' + $elm$core$String$fromFloat($author$project$Graph$graphHeight)))),
+					$elm$svg$Svg$Attributes$shapeRendering('crispEdges')
 				]),
 			_List_fromArray(
 				[

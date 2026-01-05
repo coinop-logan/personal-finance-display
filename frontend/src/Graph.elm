@@ -526,6 +526,7 @@ viewGraph entries =
             [ SA.width (String.fromFloat graphWidth)
             , SA.height (String.fromFloat graphHeight)
             , SA.viewBox ("0 0 " ++ String.fromFloat graphWidth ++ " " ++ String.fromFloat graphHeight)
+            , SA.shapeRendering "crispEdges"
             ]
             [ -- Background
               rect
