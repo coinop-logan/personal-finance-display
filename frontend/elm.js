@@ -15660,7 +15660,7 @@ var $author$project$Graph$buildDayData = function (entries) {
 		entriesByDay);
 };
 var $author$project$Graph$colorBackground = '#6b7aa0';
-var $author$project$Graph$colorCerulean = '#00acee';
+var $author$project$Graph$colorEarnedLine = '#1e40af';
 var $author$project$Graph$colorGreen = '#4ade80';
 var $author$project$Graph$colorRed = '#dc2626';
 var $author$project$Graph$colorYellow = '#fbbf24';
@@ -16100,6 +16100,7 @@ var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $mdgriffith$elm_ui$Element$html = $mdgriffith$elm_ui$Internal$Model$unstyled;
 var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
+var $elm$svg$Svg$Attributes$textRendering = _VirtualDom_attribute('text-rendering');
 var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
 var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
 var $author$project$Graph$viewGraph = function (entries) {
@@ -16135,24 +16136,18 @@ var $author$project$Graph$viewGraph = function (entries) {
 	var yMinK = -creditLimitK;
 	var creditPolygon = A4($author$project$Graph$drawStepPolygon, yMinK, 0, creditValues, $author$project$Graph$colorYellow);
 	var debtLine = A3($author$project$Graph$drawStepLine, yMinK, debtValues, $author$project$Graph$colorRed);
-	var earnedLine = A3($author$project$Graph$drawStepLine, yMinK, earnedValues, $author$project$Graph$colorCerulean);
+	var earnedLine = A3($author$project$Graph$drawStepLine, yMinK, earnedValues, $author$project$Graph$colorEarnedLine);
 	var endLabels = function () {
 		var _v0 = $elm$core$List$reverse(dayData);
 		if (_v0.b) {
 			var latest = _v0.a;
-			var labelX = $elm$core$Basics$floor(
-				A2($author$project$Graph$dayToX, yMinK, latest.ae + 1) + 10);
-			var earnedY = $elm$core$Basics$floor(
-				A2($author$project$Graph$valueToY, yMinK, latest.aP));
-			var debtY = $elm$core$Basics$floor(
-				A2($author$project$Graph$valueToY, yMinK, latest.bn));
-			var creditY = $elm$core$Basics$floor(
-				A2($author$project$Graph$valueToY, yMinK, -latest.aN));
-			var checkingY = $elm$core$Basics$floor(
-				A2($author$project$Graph$valueToY, yMinK, latest.a2));
+			var labelX = A2($author$project$Graph$dayToX, yMinK, latest.ae + 1) + 10;
 			return A2(
 				$elm$svg$Svg$g,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$textRendering('optimizeSpeed')
+					]),
 				_List_fromArray(
 					[
 						A2(
@@ -16162,7 +16157,8 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$svg$Svg$Attributes$x(
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
-								$elm$core$String$fromFloat(checkingY)),
+								$elm$core$String$fromFloat(
+									A2($author$project$Graph$valueToY, yMinK, latest.a2))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorGreen),
 								$elm$svg$Svg$Attributes$fontSize('18'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
@@ -16179,8 +16175,9 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$svg$Svg$Attributes$x(
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
-								$elm$core$String$fromFloat(earnedY)),
-								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorCerulean),
+								$elm$core$String$fromFloat(
+									A2($author$project$Graph$valueToY, yMinK, latest.aP))),
+								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorEarnedLine),
 								$elm$svg$Svg$Attributes$fontSize('18'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
 							]),
@@ -16196,7 +16193,8 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$svg$Svg$Attributes$x(
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
-								$elm$core$String$fromFloat(creditY)),
+								$elm$core$String$fromFloat(
+									A2($author$project$Graph$valueToY, yMinK, -latest.aN))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorYellow),
 								$elm$svg$Svg$Attributes$fontSize('18'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
@@ -16213,7 +16211,8 @@ var $author$project$Graph$viewGraph = function (entries) {
 								$elm$svg$Svg$Attributes$x(
 								$elm$core$String$fromFloat(labelX)),
 								$elm$svg$Svg$Attributes$y(
-								$elm$core$String$fromFloat(debtY)),
+								$elm$core$String$fromFloat(
+									A2($author$project$Graph$valueToY, yMinK, latest.bn))),
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorRed),
 								$elm$svg$Svg$Attributes$fontSize('18'),
 								$elm$svg$Svg$Attributes$dominantBaseline('middle')
