@@ -60,7 +60,7 @@ colorYellow : String
 colorYellow = "#fbbf24"
 
 colorRed : String
-colorRed = "#ff6b6b"
+colorRed = "#dc2626"
 
 colorText : String
 colorText = "#222"
@@ -452,17 +452,22 @@ viewGraph entries =
         debtLine = drawStepLine yMinK debtValues colorRed
 
         -- End labels for most recent values (positioned just right of last data point)
+        -- Floor positions to avoid anti-aliasing artifacts from fractional coordinates
         endLabels =
             case List.reverse dayData of
                 latest :: _ ->
                     let
                         -- Position label just after the last day's bar ends
-                        labelX = dayToX yMinK (latest.day + 1) + 10
+                        labelX = toFloat (floor (dayToX yMinK (latest.day + 1) + 10))
+                        checkingY = toFloat (floor (valueToY yMinK latest.checking))
+                        earnedY = toFloat (floor (valueToY yMinK latest.earnedMoney))
+                        creditY = toFloat (floor (valueToY yMinK (-latest.creditDrawn)))
+                        debtY = toFloat (floor (valueToY yMinK latest.personalDebt))
                     in
                     g []
                         [ text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK latest.checking))
+                            , SA.y (String.fromFloat checkingY)
                             , SA.fill colorGreen
                             , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
@@ -470,7 +475,7 @@ viewGraph entries =
                             [ Svg.text (formatK latest.checking) ]
                         , text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK latest.earnedMoney))
+                            , SA.y (String.fromFloat earnedY)
                             , SA.fill colorCerulean
                             , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
@@ -478,7 +483,7 @@ viewGraph entries =
                             [ Svg.text (formatK latest.earnedMoney) ]
                         , text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK (-latest.creditDrawn)))
+                            , SA.y (String.fromFloat creditY)
                             , SA.fill colorYellow
                             , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
@@ -486,7 +491,7 @@ viewGraph entries =
                             [ Svg.text (formatK latest.creditDrawn) ]
                         , text_
                             [ SA.x (String.fromFloat labelX)
-                            , SA.y (String.fromFloat (valueToY yMinK latest.personalDebt))
+                            , SA.y (String.fromFloat debtY)
                             , SA.fill colorRed
                             , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
