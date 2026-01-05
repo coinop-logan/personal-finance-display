@@ -1,4 +1,4 @@
-module Graph exposing (viewGraph)
+module Graph exposing (viewGraph, viewMiniGraph)
 
 import Api.Types exposing (Entry)
 import Calculations exposing (dateToDays, incomingPayForEntry)
@@ -557,4 +557,180 @@ viewGraph entries =
             , drawXAxis yMinK
             , -- End labels (last, so they're always visible)
               endLabels
+            ]
+
+
+-- MINI GRAPH (for entry page)
+
+viewMiniGraph : List Entry -> Element msg
+viewMiniGraph entries =
+    let
+        -- Smaller dimensions for mini graph
+        miniWidth = 800
+        miniHeight = 200
+        miniMarginLeft = 50
+        miniMarginRight = 60
+        miniMarginTop = 15
+        miniMarginBottom = 30
+        miniPlotWidth = miniWidth - miniMarginLeft - miniMarginRight
+        miniPlotHeight = miniHeight - miniMarginTop - miniMarginBottom
+
+        dayData = buildDayData entries
+
+        -- Get credit limit from most recent entry for Y axis scaling
+        creditLimitK =
+            entries
+                |> List.reverse
+                |> List.head
+                |> Maybe.map (\e -> e.creditLimit / 1000)
+                |> Maybe.withDefault 0.5
+
+        yMinK = -creditLimitK
+
+        -- Coordinate transform functions for mini graph
+        miniDayToX day =
+            let
+                dayOffset = toFloat (day - startDate)
+                totalDaysFloat = toFloat totalDays
+            in
+            miniMarginLeft + (dayOffset / totalDaysFloat) * miniPlotWidth
+
+        miniValueToY valueK =
+            let
+                range = yMax - yMinK
+                normalized = (valueK - yMinK) / range
+            in
+            miniMarginTop + miniPlotHeight - (normalized * miniPlotHeight)
+
+        -- Build step polygon for mini graph
+        miniStepPolygon baseline dayValues color =
+            if List.isEmpty dayValues then
+                g [] []
+            else
+                let
+                    yBase = miniValueToY baseline
+
+                    topEdge prevMaybe pts =
+                        case pts of
+                            [] -> []
+                            ( day, val ) :: rest ->
+                                let
+                                    x1 = miniDayToX day
+                                    x2 = miniDayToX (day + 1)
+                                    y = miniValueToY val
+                                    gapPoints =
+                                        case prevMaybe of
+                                            Just ( prevDay, prevVal ) ->
+                                                if day > prevDay + 1 then
+                                                    [ String.fromFloat x1 ++ "," ++ String.fromFloat (miniValueToY prevVal) ]
+                                                else
+                                                    []
+                                            Nothing -> []
+                                    thisPoints =
+                                        [ String.fromFloat x1 ++ "," ++ String.fromFloat y
+                                        , String.fromFloat x2 ++ "," ++ String.fromFloat y
+                                        ]
+                                in
+                                gapPoints ++ thisPoints ++ topEdge (Just ( day, val )) rest
+
+                    firstDay = List.head dayValues |> Maybe.map Tuple.first |> Maybe.withDefault startDate
+                    lastDay = List.reverse dayValues |> List.head |> Maybe.map Tuple.first |> Maybe.withDefault startDate
+                    startX = miniDayToX firstDay
+                    endX = miniDayToX (lastDay + 1)
+
+                    pointsStr =
+                        [ String.fromFloat startX ++ "," ++ String.fromFloat yBase ]
+                            ++ topEdge Nothing dayValues
+                            ++ [ String.fromFloat endX ++ "," ++ String.fromFloat yBase ]
+                            |> String.join " "
+                in
+                polygon
+                    [ SA.points pointsStr
+                    , SA.fill color
+                    , SA.fillOpacity "0.8"
+                    ]
+                    []
+
+        -- Build step line for mini graph
+        miniStepLine dayValues color =
+            if List.isEmpty dayValues then
+                g [] []
+            else
+                let
+                    buildPoints prevMaybe pts =
+                        case pts of
+                            [] -> []
+                            ( day, val ) :: rest ->
+                                let
+                                    x1 = miniDayToX day
+                                    x2 = miniDayToX (day + 1)
+                                    y = miniValueToY val
+                                    gapPoints =
+                                        case prevMaybe of
+                                            Just ( prevDay, prevVal ) ->
+                                                if day > prevDay + 1 then
+                                                    [ String.fromFloat x1 ++ "," ++ String.fromFloat (miniValueToY prevVal) ]
+                                                else
+                                                    []
+                                            Nothing -> []
+                                    thisPoints =
+                                        [ String.fromFloat x1 ++ "," ++ String.fromFloat y
+                                        , String.fromFloat x2 ++ "," ++ String.fromFloat y
+                                        ]
+                                in
+                                gapPoints ++ thisPoints ++ buildPoints (Just ( day, val )) rest
+
+                    pointsStr = buildPoints Nothing dayValues |> String.join " "
+                in
+                polyline
+                    [ SA.points pointsStr
+                    , SA.fill "none"
+                    , SA.stroke color
+                    , SA.strokeWidth "2"
+                    ]
+                    []
+
+        -- Data layers
+        checkingValues = List.map (\d -> ( d.day, d.checking )) dayData
+        creditValues = List.map (\d -> ( d.day, -d.creditDrawn )) dayData
+        earnedValues = List.map (\d -> ( d.day, d.earnedMoney )) dayData
+        debtValues = List.map (\d -> ( d.day, d.personalDebt )) dayData
+
+        -- Zero line
+        y0 = miniValueToY 0
+        zeroLine =
+            line
+                [ SA.x1 (String.fromFloat miniMarginLeft)
+                , SA.y1 (String.fromFloat y0)
+                , SA.x2 (String.fromFloat (miniWidth - miniMarginRight))
+                , SA.y2 (String.fromFloat y0)
+                , SA.stroke colorAxis
+                , SA.strokeWidth "1"
+                ]
+                []
+    in
+    html <|
+        svg
+            [ SA.width (String.fromFloat miniWidth)
+            , SA.height (String.fromFloat miniHeight)
+            , SA.viewBox ("0 0 " ++ String.fromFloat miniWidth ++ " " ++ String.fromFloat miniHeight)
+            , SA.shapeRendering "crispEdges"
+            ]
+            [ -- Background
+              rect
+                [ SA.x "0"
+                , SA.y "0"
+                , SA.width (String.fromFloat miniWidth)
+                , SA.height (String.fromFloat miniHeight)
+                , SA.fill colorBackground
+                , SA.rx "8"
+                ]
+                []
+            , -- Data
+              miniStepPolygon 0 checkingValues colorGreen
+            , miniStepPolygon 0 creditValues colorYellow
+            , miniStepLine earnedValues colorEarnedLine
+            , miniStepLine debtValues colorRed
+            , -- Zero line
+              zeroLine
             ]

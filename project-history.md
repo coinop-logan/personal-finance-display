@@ -153,3 +153,43 @@ Major feature development session focusing on the graph visualization and UX imp
 ### Deployment
 
 All changes deployed via `make deploy` with ARM64 cross-compilation for Pi.
+
+---
+
+## Session 5
+
+**Date:** 2026-01-05
+
+### Summary
+
+Polish and styling session. Project reached 1.0 - now running live on bedroom Pi with TV auto-wake in the morning.
+
+### Key Changes
+
+**Graph Polling:**
+- Graph page now polls for new data every second (entry page does not poll)
+- New entries appear automatically without page reload
+
+**Kiosk Launch Script:**
+- Added `pi-setup/launch-kiosk.sh` with Chromium flags to suppress Google background network requests
+- Flags: `--disable-background-networking`, `--disable-component-update`, `--disable-sync`, `--disable-translate`, `--no-first-run`
+
+**Graph Styling:**
+- Background changed from dark blue (#252542) to medium blue (#6b7aa0)
+- Axis/tick marks now black, axis labels dark gray
+- Earned money line changed from cerulean to dark blue (#1e40af)
+- Debt line changed to stronger red (#dc2626)
+- Draw order fixed: data first, then axes, then end labels on top
+
+**Anti-aliasing:**
+- Added `shape-rendering="crispEdges"` to SVG for crisp shapes
+- Added `text-rendering="optimizeSpeed"` to end labels group for crisp text
+
+**End Labels Improvements:**
+- Labels now positioned just right of last data point (not fixed right margin)
+- Labels sorted by Y position and pushed down if they would overlap
+- Zero-value labels hidden (earned, credit drawn, personal debt)
+
+### Project Status
+
+**1.0 Complete** - Pi running in bedroom, TV turns on before morning alarm.

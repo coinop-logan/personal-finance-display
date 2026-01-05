@@ -462,7 +462,8 @@ viewEntryPage model =
             el [] (text "Loading...")
           else
             column [ spacing 20, width fill ]
-                [ viewEntryForm model
+                [ Graph.viewMiniGraph model.entries
+                , viewEntryForm model
                 , viewRecentEntries model.entries
                 ]
         , case model.error of
