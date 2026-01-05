@@ -406,15 +406,25 @@ colors =
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        layoutAttrs =
+            case model.page of
+                GraphPage ->
+                    [ Background.color colors.background
+                    , Font.color colors.text
+                    , Font.family [ Font.typeface "system-ui", Font.sansSerif ]
+                    ]
+
+                EntryPage ->
+                    [ Background.color colors.background
+                    , Font.color colors.text
+                    , Font.family [ Font.typeface "system-ui", Font.sansSerif ]
+                    , padding 20
+                    ]
+    in
     { title = "Finance Tracker"
     , body =
-        [ layout
-            [ Background.color colors.background
-            , Font.color colors.text
-            , Font.family [ Font.typeface "system-ui", Font.sansSerif ]
-            , padding 20
-            ]
-            (viewBody model)
+        [ layout layoutAttrs (viewBody model)
         ]
     }
 
@@ -429,13 +439,10 @@ viewBody model =
 
 viewGraphPage : Model -> Element Msg
 viewGraphPage model =
-    column [ spacing 20, width fill ]
-        [ el [ Font.size 24, Font.light ] (text "Finance Tracker")
-        , if model.loading then
-            el [] (text "Loading...")
-          else
-            Graph.viewGraph model.entries
-        ]
+    if model.loading then
+        el [] (text "Loading...")
+    else
+        Graph.viewGraph model.entries
 
 viewEntryPage : Model -> Element Msg
 viewEntryPage model =
@@ -619,7 +626,7 @@ viewCheckbox labelText isChecked toMsg =
 viewRecentEntries : List Entry -> Element Msg
 viewRecentEntries entries =
     let
-        recent = List.take 5 (List.reverse entries)
+        recent = List.take 25 (List.reverse entries)
     in
     if List.isEmpty recent then
         none

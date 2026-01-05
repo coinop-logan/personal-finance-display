@@ -7,25 +7,25 @@ import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline)
 import Svg.Attributes as SA
 
 
--- CONSTANTS
+-- CONSTANTS (1920x1080 full HD)
 
 graphWidth : Float
-graphWidth = 800
+graphWidth = 1920
 
 graphHeight : Float
-graphHeight = 400
+graphHeight = 1080
 
 marginLeft : Float
-marginLeft = 50
+marginLeft = 60
 
 marginRight : Float
-marginRight = 80
+marginRight = 100
 
 marginTop : Float
-marginTop = 20
+marginTop = 30
 
 marginBottom : Float
-marginBottom = 30
+marginBottom = 50
 
 plotWidth : Float
 plotWidth = graphWidth - marginLeft - marginRight
@@ -183,6 +183,9 @@ dayLabel day =
     For bars: creates outline of all bars as one shape.
     Goes: start at baseline, step up to first value, across to next day,
     step to next value, etc., then back down to baseline.
+
+    Handles gaps: if there's a gap between days, extends the previous value
+    horizontally until the next data point.
 -}
 drawStepPolygon : Float -> Float -> List ( Int, Float ) -> String -> Svg msg
 drawStepPolygon yMinK baseline dayValues color =
@@ -192,29 +195,38 @@ drawStepPolygon yMinK baseline dayValues color =
         let
             y0 = valueToY yMinK baseline
 
-            -- Build the top edge of the polygon (stepping across days)
-            topEdge : List ( Int, Float ) -> List String
-            topEdge pts =
+            -- Build the top edge of the polygon, handling gaps between days
+            topEdge : Maybe ( Int, Float ) -> List ( Int, Float ) -> List String
+            topEdge prevMaybe pts =
                 case pts of
                     [] -> []
-                    [ ( day, val ) ] ->
-                        let
-                            x1 = dayToX yMinK day
-                            x2 = dayToX yMinK (day + 1)
-                            y = valueToY yMinK val
-                        in
-                        [ String.fromFloat x1 ++ "," ++ String.fromFloat y
-                        , String.fromFloat x2 ++ "," ++ String.fromFloat y
-                        ]
                     ( day, val ) :: rest ->
                         let
                             x1 = dayToX yMinK day
                             x2 = dayToX yMinK (day + 1)
                             y = valueToY yMinK val
+
+                            -- If there's a gap from previous day, extend previous value to this day's start
+                            gapPoints =
+                                case prevMaybe of
+                                    Just ( prevDay, prevVal ) ->
+                                        if day > prevDay + 1 then
+                                            -- There's a gap: extend previous value to start of this day
+                                            let
+                                                prevY = valueToY yMinK prevVal
+                                            in
+                                            [ String.fromFloat x1 ++ "," ++ String.fromFloat prevY ]
+                                        else
+                                            []
+                                    Nothing ->
+                                        []
+
+                            thisPoints =
+                                [ String.fromFloat x1 ++ "," ++ String.fromFloat y
+                                , String.fromFloat x2 ++ "," ++ String.fromFloat y
+                                ]
                         in
-                        (String.fromFloat x1 ++ "," ++ String.fromFloat y)
-                            :: (String.fromFloat x2 ++ "," ++ String.fromFloat y)
-                            :: topEdge rest
+                        gapPoints ++ thisPoints ++ topEdge (Just ( day, val )) rest
 
             -- Get the x coordinates for baseline
             firstDay = List.head dayValues |> Maybe.map Tuple.first |> Maybe.withDefault startDate
@@ -226,7 +238,7 @@ drawStepPolygon yMinK baseline dayValues color =
             -- Build full polygon: start at baseline, go up and across, come back to baseline
             pointsStr =
                 [ String.fromFloat startX ++ "," ++ String.fromFloat y0 ]
-                    ++ topEdge dayValues
+                    ++ topEdge Nothing dayValues
                     ++ [ String.fromFloat endX ++ "," ++ String.fromFloat y0 ]
                     |> String.join " "
         in
@@ -240,6 +252,9 @@ drawStepPolygon yMinK baseline dayValues color =
 
 {-| Draw a step line (for earned money and debt lines).
     Steps occur at day boundaries.
+
+    Handles gaps: if there's a gap between days, extends the previous value
+    horizontally until the next data point's day, then steps vertically.
 -}
 drawStepLine : Float -> List ( Int, Float ) -> String -> Svg msg
 drawStepLine yMinK dayValues color =
@@ -247,37 +262,46 @@ drawStepLine yMinK dayValues color =
         g [] []
     else
         let
-            -- Build step points: for each day, draw from day start to day end at that value
-            buildPoints : List ( Int, Float ) -> List String
-            buildPoints pts =
+            -- Build step points, handling gaps between days
+            buildPoints : Maybe ( Int, Float ) -> List ( Int, Float ) -> List String
+            buildPoints prevMaybe pts =
                 case pts of
                     [] -> []
-                    [ ( day, val ) ] ->
-                        let
-                            x1 = dayToX yMinK day
-                            x2 = dayToX yMinK (day + 1)
-                            y = valueToY yMinK val
-                        in
-                        [ String.fromFloat x1 ++ "," ++ String.fromFloat y
-                        , String.fromFloat x2 ++ "," ++ String.fromFloat y
-                        ]
                     ( day, val ) :: rest ->
                         let
                             x1 = dayToX yMinK day
                             x2 = dayToX yMinK (day + 1)
                             y = valueToY yMinK val
-                        in
-                        (String.fromFloat x1 ++ "," ++ String.fromFloat y)
-                            :: (String.fromFloat x2 ++ "," ++ String.fromFloat y)
-                            :: buildPoints rest
 
-            pointsStr = buildPoints dayValues |> String.join " "
+                            -- If there's a gap from previous day, extend previous value to this day's start
+                            gapPoints =
+                                case prevMaybe of
+                                    Just ( prevDay, prevVal ) ->
+                                        if day > prevDay + 1 then
+                                            -- There's a gap: extend previous value to start of this day
+                                            let
+                                                prevY = valueToY yMinK prevVal
+                                            in
+                                            [ String.fromFloat x1 ++ "," ++ String.fromFloat prevY ]
+                                        else
+                                            []
+                                    Nothing ->
+                                        []
+
+                            thisPoints =
+                                [ String.fromFloat x1 ++ "," ++ String.fromFloat y
+                                , String.fromFloat x2 ++ "," ++ String.fromFloat y
+                                ]
+                        in
+                        gapPoints ++ thisPoints ++ buildPoints (Just ( day, val )) rest
+
+            pointsStr = buildPoints Nothing dayValues |> String.join " "
         in
         polyline
             [ SA.points pointsStr
             , SA.fill "none"
             , SA.stroke color
-            , SA.strokeWidth "2"
+            , SA.strokeWidth "3"
             ]
             []
 
@@ -297,7 +321,7 @@ drawXAxis yMinK =
                 , SA.x2 (String.fromFloat (graphWidth - marginRight))
                 , SA.y2 (String.fromFloat y0)
                 , SA.stroke colorAxis
-                , SA.strokeWidth "1"
+                , SA.strokeWidth "2"
                 ]
                 []
 
@@ -313,16 +337,16 @@ drawXAxis yMinK =
                             [ SA.x1 (String.fromFloat x)
                             , SA.y1 (String.fromFloat y0)
                             , SA.x2 (String.fromFloat x)
-                            , SA.y2 (String.fromFloat (y0 + 5))
+                            , SA.y2 (String.fromFloat (y0 + 8))
                             , SA.stroke colorAxis
-                            , SA.strokeWidth "1"
+                            , SA.strokeWidth "2"
                             ]
                             []
                         , text_
                             [ SA.x (String.fromFloat (x + (dayToX yMinK (day + 1) - x) / 2))
-                            , SA.y (String.fromFloat (y0 + 18))
+                            , SA.y (String.fromFloat (y0 + 28))
                             , SA.fill colorText
-                            , SA.fontSize "9"
+                            , SA.fontSize "16"
                             , SA.textAnchor "middle"
                             ]
                             [ Svg.text (dayLabel day) ]
@@ -348,19 +372,19 @@ drawYAxis yMinK =
                     in
                     g []
                         [ line
-                            [ SA.x1 (String.fromFloat (marginLeft - 5))
+                            [ SA.x1 (String.fromFloat (marginLeft - 8))
                             , SA.y1 (String.fromFloat y)
                             , SA.x2 (String.fromFloat marginLeft)
                             , SA.y2 (String.fromFloat y)
                             , SA.stroke colorAxis
-                            , SA.strokeWidth "1"
+                            , SA.strokeWidth "2"
                             ]
                             []
                         , text_
-                            [ SA.x (String.fromFloat (marginLeft - 8))
-                            , SA.y (String.fromFloat (y + 3))
+                            [ SA.x (String.fromFloat (marginLeft - 12))
+                            , SA.y (String.fromFloat (y + 5))
                             , SA.fill colorText
-                            , SA.fontSize "10"
+                            , SA.fontSize "16"
                             , SA.textAnchor "end"
                             ]
                             [ Svg.text (formatK val) ]
@@ -374,11 +398,43 @@ drawYAxis yMinK =
                 , SA.x2 (String.fromFloat marginLeft)
                 , SA.y2 (String.fromFloat (graphHeight - marginBottom))
                 , SA.stroke colorAxis
-                , SA.strokeWidth "1"
+                , SA.strokeWidth "2"
                 ]
                 []
     in
     g [] (axisLine :: ticks)
+
+
+-- DEBUG MARKER
+
+drawDebugMarker : Svg msg
+drawDebugMarker =
+    let
+        -- Draw a small cross/plus near the lower right corner
+        cx = graphWidth - 20
+        cy = graphHeight - 20
+        size = 15
+    in
+    g []
+        [ line
+            [ SA.x1 (String.fromFloat (cx - size))
+            , SA.y1 (String.fromFloat cy)
+            , SA.x2 (String.fromFloat (cx + size))
+            , SA.y2 (String.fromFloat cy)
+            , SA.stroke "#ff00ff"
+            , SA.strokeWidth "3"
+            ]
+            []
+        , line
+            [ SA.x1 (String.fromFloat cx)
+            , SA.y1 (String.fromFloat (cy - size))
+            , SA.x2 (String.fromFloat cx)
+            , SA.y2 (String.fromFloat (cy + size))
+            , SA.stroke "#ff00ff"
+            , SA.strokeWidth "3"
+            ]
+            []
+        ]
 
 
 -- MAIN GRAPH VIEW
@@ -432,14 +488,14 @@ viewGraph entries =
             case List.reverse dayData of
                 latest :: _ ->
                     let
-                        labelX = graphWidth - marginRight + 5
+                        labelX = graphWidth - marginRight + 10
                     in
                     g []
                         [ text_
                             [ SA.x (String.fromFloat labelX)
                             , SA.y (String.fromFloat (valueToY yMinK latest.checking))
                             , SA.fill colorGreen
-                            , SA.fontSize "11"
+                            , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
                             ]
                             [ Svg.text (formatK latest.checking) ]
@@ -447,7 +503,7 @@ viewGraph entries =
                             [ SA.x (String.fromFloat labelX)
                             , SA.y (String.fromFloat (valueToY yMinK latest.earnedMoney))
                             , SA.fill colorCerulean
-                            , SA.fontSize "11"
+                            , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
                             ]
                             [ Svg.text (formatK latest.earnedMoney) ]
@@ -455,7 +511,7 @@ viewGraph entries =
                             [ SA.x (String.fromFloat labelX)
                             , SA.y (String.fromFloat (valueToY yMinK (-latest.creditDrawn)))
                             , SA.fill colorYellow
-                            , SA.fontSize "11"
+                            , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
                             ]
                             [ Svg.text (formatK latest.creditDrawn) ]
@@ -463,7 +519,7 @@ viewGraph entries =
                             [ SA.x (String.fromFloat labelX)
                             , SA.y (String.fromFloat (valueToY yMinK latest.personalDebt))
                             , SA.fill colorRed
-                            , SA.fontSize "11"
+                            , SA.fontSize "18"
                             , SA.dominantBaseline "middle"
                             ]
                             [ Svg.text (formatK latest.personalDebt) ]
@@ -484,7 +540,6 @@ viewGraph entries =
                 , SA.width (String.fromFloat graphWidth)
                 , SA.height (String.fromFloat graphHeight)
                 , SA.fill colorBackground
-                , SA.rx "12"
                 ]
                 []
             , -- Axes
@@ -496,4 +551,6 @@ viewGraph entries =
             , earnedLine
             , debtLine
             , endLabels
+            , -- Debug marker near lower right
+              drawDebugMarker
             ]
