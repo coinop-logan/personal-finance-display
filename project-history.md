@@ -193,3 +193,36 @@ Polish and styling session. Project reached 1.0 - now running live on bedroom Pi
 ### Project Status
 
 **1.0 Complete** - Pi running in bedroom, TV turns on before morning alarm.
+
+---
+
+## Session 6
+
+**Date:** 2026-01-06
+
+### Summary
+
+Bug fixes and deployment reliability improvements.
+
+### Key Changes
+
+**Build Fix:**
+- Previous session built Elm to `main.js` instead of `elm.js`, but `index.html` loads `elm.js`
+- Clock overlay change was never actually deployed; rebuilt correctly
+
+**Graph Display Adjustments:**
+- Start date changed from Dec 20 to Dec 29
+- Y-axis max changed from $20k to $15k
+
+**Deployment Delay Fix:**
+- Investigated 10+ minute delay between pushing code and seeing updates on Pi
+- Root cause: Browser caching `elm.js` without Cache-Control headers
+- Fix: Added `Cache-Control: no-cache, no-store, must-revalidate` header to Rust server
+- Added `set-header` feature to tower-http in Cargo.toml
+- Future deployments should update within seconds
+
+### Files Modified
+
+- `frontend/src/Graph.elm` - Date range and Y-axis constants
+- `backend/src/main.rs` - Added SetResponseHeaderLayer for cache control
+- `backend/Cargo.toml` - Added set-header feature
