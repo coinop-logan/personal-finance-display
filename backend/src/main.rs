@@ -2,13 +2,14 @@ mod types;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{header, HeaderValue, StatusCode},
     routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::{Arc, RwLock};
 use std::{fs, path::PathBuf};
 use tower_http::services::{ServeDir, ServeFile};
+use tower_http::set_header::SetResponseHeaderLayer;
 use types::{ApiResponse, Entry, NewEntry};
 
 type AppState = Arc<RwLock<AppData>>;
@@ -126,6 +127,7 @@ async fn main() {
         .route("/entry/:id", delete(delete_entry));
 
     // Main app: API + static files (with SPA fallback to index.html)
+    // Add Cache-Control: no-cache to prevent browser from caching stale JS
     let serve_dir = ServeDir::new("dist")
         .append_index_html_on_directories(true)
         .not_found_service(ServeFile::new("dist/index.html"));
@@ -133,6 +135,10 @@ async fn main() {
     let app = Router::new()
         .nest("/api", api_routes)
         .fallback_service(serve_dir)
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("no-cache, no-store, must-revalidate"),
+        ))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
