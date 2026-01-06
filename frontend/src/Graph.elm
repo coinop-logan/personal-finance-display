@@ -37,9 +37,9 @@ plotWidth = graphWidth - marginLeft - marginRight
 plotHeight : Float
 plotHeight = graphHeight - marginTop - marginBottom
 
--- Date range: 2025-12-20 to 2026-01-31
+-- Date range: 2025-12-29 to 2026-01-31
 startDate : Int
-startDate = dateToDays "2025-12-20"
+startDate = dateToDays "2025-12-29"
 
 endDate : Int
 endDate = dateToDays "2026-01-31"
@@ -47,9 +47,9 @@ endDate = dateToDays "2026-01-31"
 totalDays : Int
 totalDays = endDate - startDate
 
--- Y axis: yMin will be calculated from credit limit, yMax is 20k
+-- Y axis: yMin will be calculated from credit limit, yMax is 15k
 yMax : Float
-yMax = 20.0  -- in thousands
+yMax = 15.0  -- in thousands
 
 
 -- COLORS
