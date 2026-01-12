@@ -1,8 +1,8 @@
 module Graph exposing (viewGraph, viewMiniGraph)
 
-import Api.Types exposing (Entry)
+import Api.Types exposing (Entry, Weather)
 import Calculations exposing (dateToDays, incomingPayForEntry)
-import Element exposing (Element, html, el, text, row, inFront, alignRight, alignTop, padding, paddingEach, rgb255, rgba)
+import Element exposing (Element, html, el, text, row, column, inFront, alignRight, alignTop, padding, paddingEach, spacing, rgb255, rgba)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -500,8 +500,8 @@ formatMilitaryTime zone time =
 
 -- MAIN GRAPH VIEW
 
-viewGraph : List Entry -> Time.Posix -> Element msg
-viewGraph entries currentTime =
+viewGraph : List Entry -> Time.Posix -> Maybe Weather -> Element msg
+viewGraph entries currentTime maybeWeather =
     let
         dayData = buildDayData entries
 
@@ -627,21 +627,34 @@ viewGraph entries currentTime =
         -- Clock overlay using Elm UI
         timeStr = formatMilitaryTime alaskaZone currentTime
 
+        weatherStr =
+            case maybeWeather of
+                Just w ->
+                    String.fromInt w.highF ++ "° / " ++ String.fromInt w.lowF ++ "°"
+
+                Nothing ->
+                    ""
+
         clockOverlay =
             el
                 [ alignRight
                 , alignTop
                 , paddingEach { top = 10, right = round marginRight + 10, bottom = 0, left = 0 }
                 ]
-                (el
+                (column
                     [ Background.color (rgba 0 0 0 0.35)
                     , Border.rounded 8
                     , padding 10
+                    , spacing 4
                     , Font.family [ Font.monospace ]
-                    , Font.size 48
                     , Font.color (rgb255 238 238 238)
                     ]
-                    (text timeStr)
+                    [ el [ Font.size 48 ] (text timeStr)
+                    , if weatherStr /= "" then
+                        el [ Font.size 28 ] (text weatherStr)
+                      else
+                        Element.none
+                    ]
                 )
 
         svgGraph =

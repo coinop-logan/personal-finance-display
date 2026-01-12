@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Api.Types exposing (Entry, NewEntry, entryDecoder, newEntryEncoder)
+import Api.Types exposing (Entry, NewEntry, Weather, entryDecoder, newEntryEncoder, weatherDecoder)
 import Browser
 import Browser.Navigation as Nav
 import Calculations exposing (dateToDays, daysToDateString, dayOfWeekName, incomingPayForEntry)
@@ -63,6 +63,7 @@ type alias Model =
     , key : Nav.Key
     , todayDays : Int
     , currentTime : Time.Posix
+    , weather : Maybe Weather
     }
 
 emptyForm : Int -> EntryForm
@@ -150,8 +151,9 @@ init flags url key =
       , key = key
       , todayDays = todayDays
       , currentTime = Time.millisToPosix 0
+      , weather = Nothing
       }
-    , fetchData
+    , Cmd.batch [ fetchData, fetchWeather ]
     )
 
 
@@ -159,6 +161,7 @@ init flags url key =
 
 type Msg
     = GotData (Result Http.Error (List Entry))
+    | GotWeather (Result Http.Error Weather)
     | Tick Time.Posix
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
@@ -201,6 +204,15 @@ update msg model =
                     ( { model | loading = False, error = Just (httpErrorToString err) }
                     , Cmd.none
                     )
+
+        GotWeather result ->
+            case result of
+                Ok weather ->
+                    ( { model | weather = Just weather }, Cmd.none )
+
+                Err _ ->
+                    -- Silently ignore weather fetch errors
+                    ( model, Cmd.none )
 
         Tick time ->
             ( { model | currentTime = time }, fetchData )
@@ -373,6 +385,13 @@ fetchData =
         , expect = Http.expectJson GotData dataDecoder
         }
 
+fetchWeather : Cmd Msg
+fetchWeather =
+    Http.get
+        { url = "/api/weather"
+        , expect = Http.expectJson GotWeather weatherDecoder
+        }
+
 submitEntry : NewEntry -> Cmd Msg
 submitEntry newEntry =
     Http.post
@@ -454,7 +473,7 @@ viewGraphPage model =
     if model.loading then
         el [] (text "Loading...")
     else
-        Graph.viewGraph model.entries model.currentTime
+        Graph.viewGraph model.entries model.currentTime model.weather
 
 viewEntryPage : Model -> Element Msg
 viewEntryPage model =

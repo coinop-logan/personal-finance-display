@@ -115,3 +115,24 @@ apiResponseEncoder struct =
         ]
 
 
+type alias Weather =
+    { highF : Int
+    , lowF : Int
+    }
+
+
+weatherDecoder : Decode.Decoder Weather
+weatherDecoder =
+    Decode.succeed Weather
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "highF" (Decode.int)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "lowF" (Decode.int)))
+
+
+weatherEncoder : Weather -> Encode.Value
+weatherEncoder struct =
+    Encode.object
+        [ ( "highF", (Encode.int) struct.highF )
+        , ( "lowF", (Encode.int) struct.lowF )
+        ]
+
+

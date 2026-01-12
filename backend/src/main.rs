@@ -10,7 +10,7 @@ use std::sync::{Arc, RwLock};
 use std::{fs, path::PathBuf};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
-use types::{ApiResponse, Entry, NewEntry};
+use types::{ApiResponse, Entry, NewEntry, Weather};
 
 type AppState = Arc<RwLock<AppData>>;
 
@@ -108,6 +108,34 @@ async fn delete_entry(
     (StatusCode::OK, Json(ApiResponse { ok: true }))
 }
 
+async fn get_weather() -> (StatusCode, Json<Weather>) {
+    // Anchorage, Alaska coordinates
+    let lat = 61.2181;
+    let lon = -149.9003;
+
+    // Open-Meteo API - free, no API key needed
+    let url = format!(
+        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America/Anchorage&forecast_days=1",
+        lat, lon
+    );
+
+    let response = match reqwest::get(&url).await {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { high_f: 0, low_f: 0 })),
+    };
+
+    let json: serde_json::Value = match response.json().await {
+        Ok(j) => j,
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { high_f: 0, low_f: 0 })),
+    };
+
+    // Extract high and low from the response
+    let high = json["daily"]["temperature_2m_max"][0].as_f64().unwrap_or(0.0) as i32;
+    let low = json["daily"]["temperature_2m_min"][0].as_f64().unwrap_or(0.0) as i32;
+
+    (StatusCode::OK, Json(Weather { high_f: high, low_f: low }))
+}
+
 #[tokio::main]
 async fn main() {
     let port: u16 = std::env::var("PORT")
@@ -124,7 +152,8 @@ async fn main() {
     let api_routes = Router::new()
         .route("/data", get(get_entries))
         .route("/entry", post(create_entry))
-        .route("/entry/:id", delete(delete_entry));
+        .route("/entry/:id", delete(delete_entry))
+        .route("/weather", get(get_weather));
 
     // Main app: API + static files (with SPA fallback to index.html)
     // Add Cache-Control: no-cache to prevent browser from caching stale JS

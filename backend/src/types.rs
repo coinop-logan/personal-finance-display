@@ -39,3 +39,11 @@ pub struct NewEntry {
 pub struct ApiResponse {
     pub ok: bool,
 }
+
+/// Weather data for Anchorage
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct Weather {
+    pub high_f: i32,
+    pub low_f: i32,
+}

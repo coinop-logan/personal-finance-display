@@ -55,6 +55,11 @@ import Json.Encode as Encode
     add(&mut elm_code, types::ApiResponse::elm_definition());
     add(&mut elm_code, types::ApiResponse::encoder_definition());
 
+    // Generate types and decoder for Weather
+    add(&mut elm_code, types::Weather::elm_definition());
+    add(&mut elm_code, types::Weather::decoder_definition());
+    add(&mut elm_code, types::Weather::encoder_definition());
+
     // Write to frontend
     let output_dir = Path::new("../frontend/src/Api");
     fs::create_dir_all(output_dir).expect("Failed to create Api directory");
