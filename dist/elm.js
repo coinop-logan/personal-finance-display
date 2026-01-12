@@ -15189,7 +15189,7 @@ var $author$project$Calculations$sundayOfWeek = function (days) {
 };
 var $author$project$Calculations$incomingPayForEntry = F2(
 	function (targetEntry, allEntries) {
-		var taxMultiplier = 1.0;
+		var taxMultiplier = 0.75;
 		var targetDays = $author$project$Calculations$dateToDays(targetEntry.a9);
 		var payPerHour = targetEntry.bl;
 		var entriesUpToTarget = A2(
@@ -15977,9 +15977,12 @@ var $author$project$Graph$dayToX = F2(
 		return $author$project$Graph$marginLeft + ((dayOffset / totalDaysFloat) * $author$project$Graph$plotWidth);
 	});
 var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
-var $author$project$Graph$marginTop = 30;
+var $author$project$Graph$colorGridDay = 'rgba(0, 0, 0, 0.1)';
+var $author$project$Graph$colorGridFaint = 'rgba(0, 0, 0, 0.15)';
+var $author$project$Graph$colorGridWeek = 'rgba(0, 0, 0, 0.35)';
 var $author$project$Graph$graphHeight = 1080;
 var $author$project$Graph$marginBottom = 50;
+var $author$project$Graph$marginTop = 30;
 var $author$project$Graph$plotHeight = ($author$project$Graph$graphHeight - $author$project$Graph$marginTop) - $author$project$Graph$marginBottom;
 var $author$project$Graph$valueToY = F2(
 	function (yMinK, valueK) {
@@ -15987,6 +15990,68 @@ var $author$project$Graph$valueToY = F2(
 		var normalized = (valueK - yMinK) / range;
 		return ($author$project$Graph$marginTop + $author$project$Graph$plotHeight) - (normalized * $author$project$Graph$plotHeight);
 	});
+var $author$project$Graph$drawGridLines = function (yMinK) {
+	var yGridValues = A2(
+		$elm$core$List$map,
+		$elm$core$Basics$toFloat,
+		A2(
+			$elm$core$List$range,
+			$elm$core$Basics$ceiling(yMinK),
+			$elm$core$Basics$floor($author$project$Graph$yMax)));
+	var horizontalLines = A2(
+		$elm$core$List$map,
+		function (val) {
+			var y = A2($author$project$Graph$valueToY, yMinK, val);
+			return A2(
+				$elm$svg$Svg$line,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$x1(
+						$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
+						$elm$svg$Svg$Attributes$y1(
+						$elm$core$String$fromFloat(y)),
+						$elm$svg$Svg$Attributes$x2(
+						$elm$core$String$fromFloat($author$project$Graph$graphWidth - $author$project$Graph$marginRight)),
+						$elm$svg$Svg$Attributes$y2(
+						$elm$core$String$fromFloat(y)),
+						$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorGridFaint),
+						$elm$svg$Svg$Attributes$strokeWidth('1')
+					]),
+				_List_Nil);
+		},
+		yGridValues);
+	var dayLines = A2(
+		$elm$core$List$map,
+		function (day) {
+			var x = A2($author$project$Graph$dayToX, yMinK, day);
+			var dayOfWeek = A2($elm$core$Basics$modBy, 7, day);
+			var isSunday = dayOfWeek === 1;
+			var _v0 = isSunday ? _Utils_Tuple2($author$project$Graph$colorGridWeek, '2') : _Utils_Tuple2($author$project$Graph$colorGridDay, '1');
+			var strokeColor = _v0.a;
+			var strokeW = _v0.b;
+			return A2(
+				$elm$svg$Svg$line,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$x1(
+						$elm$core$String$fromFloat(x)),
+						$elm$svg$Svg$Attributes$y1(
+						$elm$core$String$fromFloat($author$project$Graph$marginTop)),
+						$elm$svg$Svg$Attributes$x2(
+						$elm$core$String$fromFloat(x)),
+						$elm$svg$Svg$Attributes$y2(
+						$elm$core$String$fromFloat($author$project$Graph$graphHeight - $author$project$Graph$marginBottom)),
+						$elm$svg$Svg$Attributes$stroke(strokeColor),
+						$elm$svg$Svg$Attributes$strokeWidth(strokeW)
+					]),
+				_List_Nil);
+		},
+		A2($elm$core$List$range, $author$project$Graph$startDate, $author$project$Graph$endDate + 1));
+	return A2(
+		$elm$svg$Svg$g,
+		_List_Nil,
+		_Utils_ap(horizontalLines, dayLines));
+};
 var $author$project$Graph$drawStepLine = F3(
 	function (yMinK, dayValues, color) {
 		if ($elm$core$List$isEmpty(dayValues)) {
@@ -16304,13 +16369,11 @@ var $author$project$Graph$formatK = function (valueK) {
 var $author$project$Graph$drawYAxis = function (yMinK) {
 	var tickValues = A2(
 		$elm$core$List$map,
-		function (n) {
-			return n * 5;
-		},
+		$elm$core$Basics$toFloat,
 		A2(
 			$elm$core$List$range,
-			$elm$core$Basics$ceiling(yMinK / 5),
-			$elm$core$Basics$floor($author$project$Graph$yMax / 5)));
+			$elm$core$Basics$ceiling(yMinK),
+			$elm$core$Basics$floor($author$project$Graph$yMax)));
 	var ticks = A2(
 		$elm$core$List$map,
 		function (val) {
@@ -16669,6 +16732,7 @@ var $author$project$Graph$viewGraph = F2(
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorBackground)
 							]),
 						_List_Nil),
+						$author$project$Graph$drawGridLines(yMinK),
 						checkingPolygon,
 						creditPolygon,
 						earnedLine,

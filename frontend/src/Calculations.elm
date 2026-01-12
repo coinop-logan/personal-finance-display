@@ -206,8 +206,8 @@ Algorithm:
 incomingPayForEntry : Entry -> List Entry -> Float
 incomingPayForEntry targetEntry allEntries =
     let
-        -- Tax multiplier placeholder: 1.0 means no tax deducted
-        taxMultiplier = 1.0
+        -- Tax multiplier: 0.75 means 25% estimated tax withheld
+        taxMultiplier = 0.75
 
         targetDays = dateToDays targetEntry.date
         currentWeekSunday = sundayOfWeek targetDays

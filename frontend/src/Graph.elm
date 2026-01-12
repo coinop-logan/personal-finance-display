@@ -75,6 +75,15 @@ colorAxis = "#000"
 colorBackground : String
 colorBackground = "#6b7aa0"
 
+colorGridFaint : String
+colorGridFaint = "rgba(0, 0, 0, 0.15)"
+
+colorGridDay : String
+colorGridDay = "rgba(0, 0, 0, 0.1)"
+
+colorGridWeek : String
+colorGridWeek = "rgba(0, 0, 0, 0.35)"
+
 
 -- GRAPH DATA
 
@@ -363,10 +372,10 @@ drawXAxis yMinK =
 drawYAxis : Float -> Svg msg
 drawYAxis yMinK =
     let
-        -- Tick marks at every $5k
+        -- Tick marks at every $1k
         tickValues =
-            List.range (ceiling (yMinK / 5)) (floor (yMax / 5))
-                |> List.map (\n -> toFloat n * 5)
+            List.range (ceiling yMinK) (floor yMax)
+                |> List.map toFloat
 
         ticks =
             tickValues
@@ -407,6 +416,69 @@ drawYAxis yMinK =
                 []
     in
     g [] (axisLine :: ticks)
+
+
+-- GRID LINES
+
+{-| Draw grid lines:
+    - Faint horizontal lines every $1k
+    - Thin vertical lines at day boundaries
+    - Thick vertical lines at week boundaries (Sundays)
+-}
+drawGridLines : Float -> Svg msg
+drawGridLines yMinK =
+    let
+        -- Horizontal grid lines every $1k
+        yGridValues =
+            List.range (ceiling yMinK) (floor yMax)
+                |> List.map toFloat
+
+        horizontalLines =
+            yGridValues
+                |> List.map (\val ->
+                    let
+                        y = valueToY yMinK val
+                    in
+                    line
+                        [ SA.x1 (String.fromFloat marginLeft)
+                        , SA.y1 (String.fromFloat y)
+                        , SA.x2 (String.fromFloat (graphWidth - marginRight))
+                        , SA.y2 (String.fromFloat y)
+                        , SA.stroke colorGridFaint
+                        , SA.strokeWidth "1"
+                        ]
+                        []
+                )
+
+        -- Vertical grid lines at day boundaries
+        -- Check if day is a Sunday (week boundary) for thicker line
+        -- 2000-01-01 was a Saturday (6), so 1=Sun, 8=Sun, etc.
+        -- dayOfWeek: 0=Sat, 1=Sun, 2=Mon, etc.
+        dayLines =
+            List.range startDate (endDate + 1)
+                |> List.map (\day ->
+                    let
+                        x = dayToX yMinK day
+                        dayOfWeek = modBy 7 day  -- 0=Sat, 1=Sun, 2=Mon, etc.
+                        isSunday = dayOfWeek == 1
+                        ( strokeColor, strokeW ) =
+                            if isSunday then
+                                ( colorGridWeek, "2" )
+                            else
+                                ( colorGridDay, "1" )
+                    in
+                    line
+                        [ SA.x1 (String.fromFloat x)
+                        , SA.y1 (String.fromFloat marginTop)
+                        , SA.x2 (String.fromFloat x)
+                        , SA.y2 (String.fromFloat (graphHeight - marginBottom))
+                        , SA.stroke strokeColor
+                        , SA.strokeWidth strokeW
+                        ]
+                        []
+                )
+    in
+    g [] (horizontalLines ++ dayLines)
 
 
 -- CLOCK
@@ -589,7 +661,9 @@ viewGraph entries currentTime =
                         , SA.fill colorBackground
                         ]
                         []
-                    , -- Data (drawn first so axes render on top)
+                    , -- Grid lines (drawn first, behind data)
+                      drawGridLines yMinK
+                    , -- Data
                       checkingPolygon
                     , creditPolygon
                     , earnedLine
