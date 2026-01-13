@@ -1,5 +1,6 @@
 module Calculations exposing
     ( incomingPayForEntry
+    , calculateDailyPay
     , dateToWeekNumber
     , dateToDays
     , daysToDateString
@@ -206,9 +207,6 @@ Algorithm:
 incomingPayForEntry : Entry -> List Entry -> Float
 incomingPayForEntry targetEntry allEntries =
     let
-        -- Tax multiplier: 0.75 means 25% estimated tax withheld
-        taxMultiplier = 0.75
-
         targetDays = dateToDays targetEntry.date
         currentWeekSunday = sundayOfWeek targetDays
         previousWeekSunday = currentWeekSunday - 7
@@ -256,7 +254,8 @@ incomingPayForEntry targetEntry allEntries =
                 in
                 calculateWeekPayWithOvertime prevWeekEntries payPerHour
     in
-    (currentWeekPay + previousWeekPay) * taxMultiplier
+    -- Tax is already applied in calculateDailyPay (called by calculateWeekPayWithOvertime)
+    currentWeekPay + previousWeekPay
 
 
 {-| Calculate pay for a week with Alaska overtime rules.
@@ -270,29 +269,66 @@ Note: Overtime hours do NOT count toward the 40-hour weekly threshold.
 calculateWeekPayWithOvertime : List Entry -> Float -> Float
 calculateWeekPayWithOvertime entries payPerHour =
     let
-        -- Process each day, accumulating regular and overtime hours
-        processDay : Entry -> { regular : Float, overtime : Float } -> { regular : Float, overtime : Float }
+        -- Process each day, accumulating regular hours and total pay
+        processDay : Entry -> { accumulatedRegular : Float, totalPay : Float } -> { accumulatedRegular : Float, totalPay : Float }
         processDay entry acc =
             let
+                dayPay = calculateDailyPay entry.hoursWorked payPerHour acc.accumulatedRegular
+
+                -- Calculate how many regular hours this day added to the weekly total
+                -- (for tracking purposes, to pass to next day)
                 hoursToday = entry.hoursWorked
-
-                -- Daily overtime: hours over 8
                 dailyRegular = min hoursToday 8
-                dailyOvertime = max 0 (hoursToday - 8)
-
-                -- Check if adding dailyRegular would exceed 40 weekly regular hours
-                regularRoomLeft = max 0 (40 - acc.regular)
-                regularToAdd = min dailyRegular regularRoomLeft
-                weeklyOverflowToOvertime = dailyRegular - regularToAdd
-
-                -- Total overtime for this day = daily overtime + any weekly overflow
-                totalOvertimeToday = dailyOvertime + weeklyOverflowToOvertime
+                regularRoomLeft = max 0 (40 - acc.accumulatedRegular)
+                regularAdded = min dailyRegular regularRoomLeft
             in
-            { regular = acc.regular + regularToAdd
-            , overtime = acc.overtime + totalOvertimeToday
+            { accumulatedRegular = acc.accumulatedRegular + regularAdded
+            , totalPay = acc.totalPay + dayPay
             }
 
         result =
-            List.foldl processDay { regular = 0, overtime = 0 } entries
+            List.foldl processDay { accumulatedRegular = 0, totalPay = 0 } entries
     in
-    (result.regular * payPerHour) + (result.overtime * payPerHour * 1.5)
+    result.totalPay
+
+
+{-| Calculate pay for a single day with Alaska overtime rules.
+
+Takes into account:
+- Daily overtime: hours over 8 in this day (1.5x rate)
+- Weekly overtime: if accumulated regular hours already >= 40, all hours are OT
+- Tax withholding: 25% withheld (0.75 multiplier)
+
+Arguments:
+- hoursToday: hours worked this day
+- payPerHour: hourly pay rate
+- accumulatedWeeklyRegular: regular hours already worked earlier this week (0-40)
+
+Returns: pay earned this day after tax
+-}
+calculateDailyPay : Float -> Float -> Float -> Float
+calculateDailyPay hoursToday payPerHour accumulatedWeeklyRegular =
+    let
+        taxMultiplier = 0.75
+
+        -- Daily overtime: hours over 8
+        dailyRegular = min hoursToday 8
+        dailyOvertime = max 0 (hoursToday - 8)
+
+        -- Weekly overtime: how much room left in the 40hr regular bucket?
+        regularRoomLeft = max 0 (40 - accumulatedWeeklyRegular)
+
+        -- Of the daily regular hours, how many fit in the weekly regular bucket?
+        regularHours = min dailyRegular regularRoomLeft
+
+        -- Any daily regular hours that don't fit become weekly overtime
+        weeklyOvertime = dailyRegular - regularHours
+
+        -- Total overtime = daily OT + weekly OT
+        totalOvertime = dailyOvertime + weeklyOvertime
+
+        -- Calculate pay before tax
+        regularPay = regularHours * payPerHour
+        overtimePay = totalOvertime * payPerHour * 1.5
+    in
+    (regularPay + overtimePay) * taxMultiplier

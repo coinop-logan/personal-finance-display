@@ -1,7 +1,7 @@
 module Graph exposing (viewGraph, viewMiniGraph)
 
 import Api.Types exposing (Entry, Weather)
-import Calculations exposing (dateToDays, incomingPayForEntry)
+import Calculations exposing (dateToDays, incomingPayForEntry, calculateDailyPay)
 import Element exposing (Element, html, el, text, row, column, inFront, alignRight, alignTop, padding, paddingEach, spacing, rgb255, rgba)
 import Element.Background as Background
 import Element.Border as Border
@@ -84,6 +84,9 @@ colorGridDay = "rgba(0, 0, 0, 0.1)"
 colorGridWeek : String
 colorGridWeek = "rgba(0, 0, 0, 0.35)"
 
+colorOrange : String
+colorOrange = "#f97316"
+
 
 -- GRAPH DATA
 
@@ -91,6 +94,7 @@ type alias DayData =
     { day : Int
     , checking : Float  -- in k
     , earnedMoney : Float  -- checking + incoming pay, in k
+    , dailyPayEarned : Float  -- pay earned just today (with OT), in k
     , creditDrawn : Float  -- credit limit - credit available, in k
     , personalDebt : Float  -- in k
     , creditLimit : Float  -- in k
@@ -105,14 +109,48 @@ buildDayData entries =
                 |> List.map (\e -> ( dateToDays e.date, e ))
                 |> List.sortBy Tuple.first
 
+        -- Get Sunday of the week containing this day
+        -- 2000-01-01 (day 0) was Saturday, so day 1 was Sunday
+        -- dayOfWeek: 0=Sat, 1=Sun, 2=Mon, etc.
+        sundayOfWeek : Int -> Int
+        sundayOfWeek day =
+            let
+                dayOfWeek = modBy 7 day
+            in
+            if dayOfWeek == 0 then
+                -- Saturday: previous Sunday is 6 days back
+                day - 6
+            else
+                -- Sunday=1, Mon=2, etc. Go back (dayOfWeek - 1) days
+                day - (dayOfWeek - 1)
+
+        -- Calculate accumulated regular hours earlier in the current week
+        -- (not including the target day)
+        accumulatedHoursInWeek : Int -> Float
+        accumulatedHoursInWeek targetDay =
+            let
+                weekSunday = sundayOfWeek targetDay
+            in
+            entriesByDay
+                |> List.filter (\( day, _ ) -> day >= weekSunday && day < targetDay)
+                |> List.foldl
+                    (\( _, entry ) acc ->
+                        -- Only count up to 8 regular hours per day toward the 40hr threshold
+                        acc + min entry.hoursWorked 8
+                    )
+                    0
+
         buildForDay : Int -> Entry -> DayData
         buildForDay day entry =
             let
                 incomingPay = incomingPayForEntry entry entries
+                accumulatedHours = accumulatedHoursInWeek day
+                dailyPay = calculateDailyPay entry.hoursWorked entry.payPerHour accumulatedHours
             in
             { day = day
             , checking = entry.checking / 1000
             , earnedMoney = (entry.checking + incomingPay) / 1000
+            , dailyPayEarned = dailyPay / 1000
             , creditDrawn = (entry.creditLimit - entry.creditAvailable) / 1000
             , personalDebt = entry.personalDebt / 1000
             , creditLimit = entry.creditLimit / 1000
@@ -317,6 +355,69 @@ drawStepLine yMinK dayValues color =
             , SA.strokeWidth "3"
             ]
             []
+
+
+{-| Draw orange vertical segments showing daily pay earned.
+
+For each day, draws a thick orange vertical line from the previous day's
+earnedMoney to (previousEarnedMoney + dailyPayEarned). This shows where
+the blue line *would be* if no money was spent that day.
+
+Arguments:
+- yMinK: Y axis minimum (for coordinate transforms)
+- dayDataList: list of DayData records
+-}
+drawDailyPaySegments : Float -> List DayData -> Svg msg
+drawDailyPaySegments yMinK dayDataList =
+    let
+        -- Build pairs of (previousEarnedMoney, currentDayData)
+        -- We need previous day's earnedMoney to know where to start the segment
+        buildSegments : Maybe DayData -> List DayData -> List (Svg msg)
+        buildSegments prevMaybe remaining =
+            case remaining of
+                [] ->
+                    []
+
+                current :: rest ->
+                    let
+                        -- Get previous earned money (or 0 if first day)
+                        prevEarned =
+                            case prevMaybe of
+                                Just prev ->
+                                    -- If there's a gap, we'd extend prev value, so use that
+                                    prev.earnedMoney
+
+                                Nothing ->
+                                    -- First data point - no previous, start from checking
+                                    -- Actually for first day, the "step" is from 0 or the day's own checking
+                                    -- Let's use the current day's checking as baseline (what we had before pay)
+                                    current.checking
+
+                        -- Only draw if there's actual daily pay
+                        segment =
+                            if current.dailyPayEarned > 0 then
+                                let
+                                    x = dayToX yMinK current.day
+                                    yBottom = valueToY yMinK prevEarned
+                                    yTop = valueToY yMinK (prevEarned + current.dailyPayEarned)
+                                in
+                                [ line
+                                    [ SA.x1 (String.fromFloat x)
+                                    , SA.y1 (String.fromFloat yBottom)
+                                    , SA.x2 (String.fromFloat x)
+                                    , SA.y2 (String.fromFloat yTop)
+                                    , SA.stroke colorOrange
+                                    , SA.strokeWidth "6"
+                                    , SA.strokeLinecap "round"
+                                    ]
+                                    []
+                                ]
+                            else
+                                []
+                    in
+                    segment ++ buildSegments (Just current) rest
+    in
+    g [] (buildSegments Nothing dayDataList)
 
 
 -- AXES
@@ -530,6 +631,9 @@ viewGraph entries currentTime maybeWeather =
 
         creditPolygon = drawStepPolygon yMinK 0 creditValues colorYellow
 
+        -- Orange shadow segments showing daily pay earned (behind the blue line)
+        dailyPaySegments = drawDailyPaySegments yMinK dayData
+
         -- Earned money line (cerulean step line)
         earnedValues =
             dayData
@@ -679,6 +783,7 @@ viewGraph entries currentTime maybeWeather =
                     , -- Data
                       checkingPolygon
                     , creditPolygon
+                    , dailyPaySegments  -- Orange segments behind blue line
                     , earnedLine
                     , debtLine
                     , -- Axes and labels (second to last)

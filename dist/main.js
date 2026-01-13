@@ -5425,6 +5425,7 @@ var $elm$core$Task$perform = F2(
 	});
 var $elm$browser$Browser$application = _Browser_application;
 var $elm$json$Json$Decode$field = _Json_decodeField;
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Calculations$isLeapYear = function (year) {
@@ -6449,6 +6450,35 @@ var $author$project$Main$fetchData = $elm$http$Http$get(
 		expect: A2($elm$http$Http$expectJson, $author$project$Main$GotData, $author$project$Main$dataDecoder),
 		url: '/api/data'
 	});
+var $author$project$Main$GotWeather = function (a) {
+	return {$: 'GotWeather', a: a};
+};
+var $author$project$Api$Types$Weather = F2(
+	function (highF, lowF) {
+		return {highF: highF, lowF: lowF};
+	});
+var $author$project$Api$Types$weatherDecoder = A2(
+	$elm$json$Json$Decode$andThen,
+	function (x) {
+		return A2(
+			$elm$json$Json$Decode$map,
+			x,
+			A2($elm$json$Json$Decode$field, 'lowF', $elm$json$Json$Decode$int));
+	},
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (x) {
+			return A2(
+				$elm$json$Json$Decode$map,
+				x,
+				A2($elm$json$Json$Decode$field, 'highF', $elm$json$Json$Decode$int));
+		},
+		$elm$json$Json$Decode$succeed($author$project$Api$Types$Weather)));
+var $author$project$Main$fetchWeather = $elm$http$Http$get(
+	{
+		expect: A2($elm$http$Http$expectJson, $author$project$Main$GotWeather, $author$project$Api$Types$weatherDecoder),
+		url: '/api/weather'
+	});
 var $elm$time$Time$Posix = function (a) {
 	return {$: 'Posix', a: a};
 };
@@ -6471,9 +6501,12 @@ var $author$project$Main$init = F3(
 				loading: true,
 				page: $author$project$Main$urlToPage(url),
 				submitting: false,
-				todayDays: todayDays
+				todayDays: todayDays,
+				weather: $elm$core$Maybe$Nothing
 			},
-			$author$project$Main$fetchData);
+			$elm$core$Platform$Cmd$batch(
+				_List_fromArray(
+					[$author$project$Main$fetchData, $author$project$Main$fetchWeather])));
 	});
 var $author$project$Main$Tick = function (a) {
 	return {$: 'Tick', a: a};
@@ -6979,7 +7012,6 @@ var $elm$core$Maybe$map2 = F3(
 			}
 		}
 	});
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
 var $author$project$Main$SubmitResult = function (a) {
@@ -7134,6 +7166,20 @@ var $author$project$Main$update = F2(
 								loading: false
 							}),
 						$elm$core$Platform$Cmd$none);
+				}
+			case 'GotWeather':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var weather = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								weather: $elm$core$Maybe$Just(weather)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
 			case 'Tick':
 				var time = msg.a;
@@ -15187,25 +15233,36 @@ var $author$project$Main$viewEntryForm = function (model) {
 				})
 			]));
 };
+var $author$project$Calculations$calculateDailyPay = F3(
+	function (hoursToday, payPerHour, accumulatedWeeklyRegular) {
+		var taxMultiplier = 0.75;
+		var regularRoomLeft = A2($elm$core$Basics$max, 0, 40 - accumulatedWeeklyRegular);
+		var dailyRegular = A2($elm$core$Basics$min, hoursToday, 8);
+		var regularHours = A2($elm$core$Basics$min, dailyRegular, regularRoomLeft);
+		var regularPay = regularHours * payPerHour;
+		var weeklyOvertime = dailyRegular - regularHours;
+		var dailyOvertime = A2($elm$core$Basics$max, 0, hoursToday - 8);
+		var totalOvertime = dailyOvertime + weeklyOvertime;
+		var overtimePay = (totalOvertime * payPerHour) * 1.5;
+		return (regularPay + overtimePay) * taxMultiplier;
+	});
 var $author$project$Calculations$calculateWeekPayWithOvertime = F2(
 	function (entries, payPerHour) {
 		var processDay = F2(
 			function (entry, acc) {
-				var regularRoomLeft = A2($elm$core$Basics$max, 0, 40 - acc.regular);
+				var regularRoomLeft = A2($elm$core$Basics$max, 0, 40 - acc.accumulatedRegular);
 				var hoursToday = entry.hoursWorked;
+				var dayPay = A3($author$project$Calculations$calculateDailyPay, entry.hoursWorked, payPerHour, acc.accumulatedRegular);
 				var dailyRegular = A2($elm$core$Basics$min, hoursToday, 8);
-				var regularToAdd = A2($elm$core$Basics$min, dailyRegular, regularRoomLeft);
-				var weeklyOverflowToOvertime = dailyRegular - regularToAdd;
-				var dailyOvertime = A2($elm$core$Basics$max, 0, hoursToday - 8);
-				var totalOvertimeToday = dailyOvertime + weeklyOverflowToOvertime;
-				return {overtime: acc.overtime + totalOvertimeToday, regular: acc.regular + regularToAdd};
+				var regularAdded = A2($elm$core$Basics$min, dailyRegular, regularRoomLeft);
+				return {accumulatedRegular: acc.accumulatedRegular + regularAdded, totalPay: acc.totalPay + dayPay};
 			});
 		var result = A3(
 			$elm$core$List$foldl,
 			processDay,
-			{overtime: 0, regular: 0},
+			{accumulatedRegular: 0, totalPay: 0},
 			entries);
-		return (result.regular * payPerHour) + ((result.overtime * payPerHour) * 1.5);
+		return result.totalPay;
 	});
 var $elm$core$List$sortBy = _List_sortBy;
 var $author$project$Calculations$sundayOfWeek = function (days) {
@@ -15214,7 +15271,6 @@ var $author$project$Calculations$sundayOfWeek = function (days) {
 };
 var $author$project$Calculations$incomingPayForEntry = F2(
 	function (targetEntry, allEntries) {
-		var taxMultiplier = 1.0;
 		var targetDays = $author$project$Calculations$dateToDays(targetEntry.date);
 		var payPerHour = targetEntry.payPerHour;
 		var entriesUpToTarget = A2(
@@ -15272,9 +15328,13 @@ var $author$project$Calculations$incomingPayForEntry = F2(
 				},
 				entriesUpToTarget));
 		var currentWeekPay = A2($author$project$Calculations$calculateWeekPayWithOvertime, currentWeekEntries, payPerHour);
-		return (currentWeekPay + previousWeekPay) * taxMultiplier;
+		return currentWeekPay + previousWeekPay;
 	});
 var $author$project$Graph$buildDayData = function (entries) {
+	var sundayOfWeek = function (day) {
+		var dayOfWeek = A2($elm$core$Basics$modBy, 7, day);
+		return (!dayOfWeek) ? (day - 6) : (day - (dayOfWeek - 1));
+	};
 	var entriesByDay = A2(
 		$elm$core$List$sortBy,
 		$elm$core$Tuple$first,
@@ -15286,10 +15346,30 @@ var $author$project$Graph$buildDayData = function (entries) {
 					e);
 			},
 			entries));
+	var accumulatedHoursInWeek = function (targetDay) {
+		var weekSunday = sundayOfWeek(targetDay);
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v2, acc) {
+					var entry = _v2.b;
+					return acc + A2($elm$core$Basics$min, entry.hoursWorked, 8);
+				}),
+			0,
+			A2(
+				$elm$core$List$filter,
+				function (_v1) {
+					var day = _v1.a;
+					return (_Utils_cmp(day, weekSunday) > -1) && (_Utils_cmp(day, targetDay) < 0);
+				},
+				entriesByDay));
+	};
 	var buildForDay = F2(
 		function (day, entry) {
 			var incomingPay = A2($author$project$Calculations$incomingPayForEntry, entry, entries);
-			return {checking: entry.checking / 1000, creditDrawn: (entry.creditLimit - entry.creditAvailable) / 1000, creditLimit: entry.creditLimit / 1000, day: day, earnedMoney: (entry.checking + incomingPay) / 1000, personalDebt: entry.personalDebt / 1000};
+			var accumulatedHours = accumulatedHoursInWeek(day);
+			var dailyPay = A3($author$project$Calculations$calculateDailyPay, entry.hoursWorked, entry.payPerHour, accumulatedHours);
+			return {checking: entry.checking / 1000, creditDrawn: (entry.creditLimit - entry.creditAvailable) / 1000, creditLimit: entry.creditLimit / 1000, dailyPayEarned: dailyPay / 1000, day: day, earnedMoney: (entry.checking + incomingPay) / 1000, personalDebt: entry.personalDebt / 1000};
 		});
 	return A2(
 		$elm$core$List$map,
@@ -15319,7 +15399,7 @@ var $elm$svg$Svg$polyline = $elm$svg$Svg$trustedNode('polyline');
 var $elm$svg$Svg$rect = $elm$svg$Svg$trustedNode('rect');
 var $elm$svg$Svg$Attributes$rx = _VirtualDom_attribute('rx');
 var $elm$svg$Svg$Attributes$shapeRendering = _VirtualDom_attribute('shape-rendering');
-var $author$project$Graph$startDate = $author$project$Calculations$dateToDays('2025-12-20');
+var $author$project$Graph$startDate = $author$project$Calculations$dateToDays('2025-12-29');
 var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
 var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
@@ -15333,7 +15413,7 @@ var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
 var $elm$svg$Svg$Attributes$y = _VirtualDom_attribute('y');
 var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
 var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
-var $author$project$Graph$yMax = 20.0;
+var $author$project$Graph$yMax = 15.0;
 var $author$project$Graph$viewMiniGraph = function (entries) {
 	var miniWidth = 800;
 	var miniMarginTop = 15;
@@ -16002,6 +16082,8 @@ var $author$project$Graph$dayToX = F2(
 		return $author$project$Graph$marginLeft + ((dayOffset / totalDaysFloat) * $author$project$Graph$plotWidth);
 	});
 var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
+var $author$project$Graph$colorOrange = '#f97316';
+var $elm$svg$Svg$Attributes$strokeLinecap = _VirtualDom_attribute('stroke-linecap');
 var $author$project$Graph$marginTop = 30;
 var $author$project$Graph$graphHeight = 1080;
 var $author$project$Graph$marginBottom = 50;
@@ -16012,6 +16094,130 @@ var $author$project$Graph$valueToY = F2(
 		var normalized = (valueK - yMinK) / range;
 		return ($author$project$Graph$marginTop + $author$project$Graph$plotHeight) - (normalized * $author$project$Graph$plotHeight);
 	});
+var $author$project$Graph$drawDailyPaySegments = F2(
+	function (yMinK, dayDataList) {
+		var buildSegments = F2(
+			function (prevMaybe, remaining) {
+				if (!remaining.b) {
+					return _List_Nil;
+				} else {
+					var current = remaining.a;
+					var rest = remaining.b;
+					var prevEarned = function () {
+						if (prevMaybe.$ === 'Just') {
+							var prev = prevMaybe.a;
+							return prev.earnedMoney;
+						} else {
+							return current.checking;
+						}
+					}();
+					var segment = function () {
+						if (current.dailyPayEarned > 0) {
+							var yTop = A2($author$project$Graph$valueToY, yMinK, prevEarned + current.dailyPayEarned);
+							var yBottom = A2($author$project$Graph$valueToY, yMinK, prevEarned);
+							var x = A2($author$project$Graph$dayToX, yMinK, current.day);
+							return _List_fromArray(
+								[
+									A2(
+									$elm$svg$Svg$line,
+									_List_fromArray(
+										[
+											$elm$svg$Svg$Attributes$x1(
+											$elm$core$String$fromFloat(x)),
+											$elm$svg$Svg$Attributes$y1(
+											$elm$core$String$fromFloat(yBottom)),
+											$elm$svg$Svg$Attributes$x2(
+											$elm$core$String$fromFloat(x)),
+											$elm$svg$Svg$Attributes$y2(
+											$elm$core$String$fromFloat(yTop)),
+											$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorOrange),
+											$elm$svg$Svg$Attributes$strokeWidth('6'),
+											$elm$svg$Svg$Attributes$strokeLinecap('round')
+										]),
+									_List_Nil)
+								]);
+						} else {
+							return _List_Nil;
+						}
+					}();
+					return _Utils_ap(
+						segment,
+						A2(
+							buildSegments,
+							$elm$core$Maybe$Just(current),
+							rest));
+				}
+			});
+		return A2(
+			$elm$svg$Svg$g,
+			_List_Nil,
+			A2(buildSegments, $elm$core$Maybe$Nothing, dayDataList));
+	});
+var $author$project$Graph$colorGridDay = 'rgba(0, 0, 0, 0.1)';
+var $author$project$Graph$colorGridFaint = 'rgba(0, 0, 0, 0.15)';
+var $author$project$Graph$colorGridWeek = 'rgba(0, 0, 0, 0.35)';
+var $author$project$Graph$drawGridLines = function (yMinK) {
+	var yGridValues = A2(
+		$elm$core$List$map,
+		$elm$core$Basics$toFloat,
+		A2(
+			$elm$core$List$range,
+			$elm$core$Basics$ceiling(yMinK),
+			$elm$core$Basics$floor($author$project$Graph$yMax)));
+	var horizontalLines = A2(
+		$elm$core$List$map,
+		function (val) {
+			var y = A2($author$project$Graph$valueToY, yMinK, val);
+			return A2(
+				$elm$svg$Svg$line,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$x1(
+						$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
+						$elm$svg$Svg$Attributes$y1(
+						$elm$core$String$fromFloat(y)),
+						$elm$svg$Svg$Attributes$x2(
+						$elm$core$String$fromFloat($author$project$Graph$graphWidth - $author$project$Graph$marginRight)),
+						$elm$svg$Svg$Attributes$y2(
+						$elm$core$String$fromFloat(y)),
+						$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorGridFaint),
+						$elm$svg$Svg$Attributes$strokeWidth('1')
+					]),
+				_List_Nil);
+		},
+		yGridValues);
+	var dayLines = A2(
+		$elm$core$List$map,
+		function (day) {
+			var x = A2($author$project$Graph$dayToX, yMinK, day);
+			var dayOfWeek = A2($elm$core$Basics$modBy, 7, day);
+			var isSunday = dayOfWeek === 1;
+			var _v0 = isSunday ? _Utils_Tuple2($author$project$Graph$colorGridWeek, '2') : _Utils_Tuple2($author$project$Graph$colorGridDay, '1');
+			var strokeColor = _v0.a;
+			var strokeW = _v0.b;
+			return A2(
+				$elm$svg$Svg$line,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$x1(
+						$elm$core$String$fromFloat(x)),
+						$elm$svg$Svg$Attributes$y1(
+						$elm$core$String$fromFloat($author$project$Graph$marginTop)),
+						$elm$svg$Svg$Attributes$x2(
+						$elm$core$String$fromFloat(x)),
+						$elm$svg$Svg$Attributes$y2(
+						$elm$core$String$fromFloat($author$project$Graph$graphHeight - $author$project$Graph$marginBottom)),
+						$elm$svg$Svg$Attributes$stroke(strokeColor),
+						$elm$svg$Svg$Attributes$strokeWidth(strokeW)
+					]),
+				_List_Nil);
+		},
+		A2($elm$core$List$range, $author$project$Graph$startDate, $author$project$Graph$endDate + 1));
+	return A2(
+		$elm$svg$Svg$g,
+		_List_Nil,
+		_Utils_ap(horizontalLines, dayLines));
+};
 var $author$project$Graph$drawStepLine = F3(
 	function (yMinK, dayValues, color) {
 		if ($elm$core$List$isEmpty(dayValues)) {
@@ -16329,13 +16535,11 @@ var $author$project$Graph$formatK = function (valueK) {
 var $author$project$Graph$drawYAxis = function (yMinK) {
 	var tickValues = A2(
 		$elm$core$List$map,
-		function (n) {
-			return n * 5;
-		},
+		$elm$core$Basics$toFloat,
 		A2(
 			$elm$core$List$range,
-			$elm$core$Basics$ceiling(yMinK / 5),
-			$elm$core$Basics$floor($author$project$Graph$yMax / 5)));
+			$elm$core$Basics$ceiling(yMinK),
+			$elm$core$Basics$floor($author$project$Graph$yMax)));
 	var ticks = A2(
 		$elm$core$List$map,
 		function (val) {
@@ -16486,8 +16690,16 @@ var $author$project$Graph$formatMilitaryTime = F2(
 var $mdgriffith$elm_ui$Internal$Model$Monospace = {$: 'Monospace'};
 var $mdgriffith$elm_ui$Element$Font$monospace = $mdgriffith$elm_ui$Internal$Model$Monospace;
 var $elm$svg$Svg$Attributes$textRendering = _VirtualDom_attribute('text-rendering');
-var $author$project$Graph$viewGraph = F2(
-	function (entries, currentTime) {
+var $author$project$Graph$viewGraph = F3(
+	function (entries, currentTime, maybeWeather) {
+		var weatherStr = function () {
+			if (maybeWeather.$ === 'Just') {
+				var w = maybeWeather.a;
+				return $elm$core$String$fromInt(w.highF) + ('° / ' + ($elm$core$String$fromInt(w.lowF) + '°'));
+			} else {
+				return '';
+			}
+		}();
 		var timeStr = A2($author$project$Graph$formatMilitaryTime, $author$project$Graph$alaskaZone, currentTime);
 		var dayData = $author$project$Graph$buildDayData(entries);
 		var debtValues = A2(
@@ -16520,6 +16732,7 @@ var $author$project$Graph$viewGraph = F2(
 					$elm$core$List$reverse(entries))));
 		var yMinK = -creditLimitK;
 		var creditPolygon = A4($author$project$Graph$drawStepPolygon, yMinK, 0, creditValues, $author$project$Graph$colorYellow);
+		var dailyPaySegments = A2($author$project$Graph$drawDailyPaySegments, yMinK, dayData);
 		var debtLine = A3($author$project$Graph$drawStepLine, yMinK, debtValues, $author$project$Graph$colorRed);
 		var earnedLine = A3($author$project$Graph$drawStepLine, yMinK, earnedValues, $author$project$Graph$colorEarnedLine);
 		var endLabels = function () {
@@ -16644,21 +16857,37 @@ var $author$project$Graph$viewGraph = F2(
 					})
 				]),
 			A2(
-				$mdgriffith$elm_ui$Element$el,
+				$mdgriffith$elm_ui$Element$column,
 				_List_fromArray(
 					[
 						$mdgriffith$elm_ui$Element$Background$color(
 						A4($mdgriffith$elm_ui$Element$rgba, 0, 0, 0, 0.35)),
 						$mdgriffith$elm_ui$Element$Border$rounded(8),
 						$mdgriffith$elm_ui$Element$padding(10),
+						$mdgriffith$elm_ui$Element$spacing(4),
 						$mdgriffith$elm_ui$Element$Font$family(
 						_List_fromArray(
 							[$mdgriffith$elm_ui$Element$Font$monospace])),
-						$mdgriffith$elm_ui$Element$Font$size(48),
 						$mdgriffith$elm_ui$Element$Font$color(
 						A3($mdgriffith$elm_ui$Element$rgb255, 238, 238, 238))
 					]),
-				$mdgriffith$elm_ui$Element$text(timeStr)));
+				_List_fromArray(
+					[
+						A2(
+						$mdgriffith$elm_ui$Element$el,
+						_List_fromArray(
+							[
+								$mdgriffith$elm_ui$Element$Font$size(48)
+							]),
+						$mdgriffith$elm_ui$Element$text(timeStr)),
+						(weatherStr !== '') ? A2(
+						$mdgriffith$elm_ui$Element$el,
+						_List_fromArray(
+							[
+								$mdgriffith$elm_ui$Element$Font$size(28)
+							]),
+						$mdgriffith$elm_ui$Element$text(weatherStr)) : $mdgriffith$elm_ui$Element$none
+					])));
 		var checkingValues = A2(
 			$elm$core$List$map,
 			function (d) {
@@ -16694,8 +16923,10 @@ var $author$project$Graph$viewGraph = F2(
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorBackground)
 							]),
 						_List_Nil),
+						$author$project$Graph$drawGridLines(yMinK),
 						checkingPolygon,
 						creditPolygon,
+						dailyPaySegments,
 						earnedLine,
 						debtLine,
 						$author$project$Graph$drawYAxis(yMinK),
@@ -16714,7 +16945,7 @@ var $author$project$Main$viewGraphPage = function (model) {
 	return model.loading ? A2(
 		$mdgriffith$elm_ui$Element$el,
 		_List_Nil,
-		$mdgriffith$elm_ui$Element$text('Loading...')) : A2($author$project$Graph$viewGraph, model.entries, model.currentTime);
+		$mdgriffith$elm_ui$Element$text('Loading...')) : A3($author$project$Graph$viewGraph, model.entries, model.currentTime, model.weather);
 };
 var $author$project$Main$viewBody = function (model) {
 	var _v0 = model.page;
