@@ -16695,7 +16695,7 @@ var $author$project$Graph$viewGraph = F3(
 		var weatherStr = function () {
 			if (maybeWeather.$ === 'Just') {
 				var w = maybeWeather.a;
-				return $elm$core$String$fromInt(w.highF) + ('° / ' + ($elm$core$String$fromInt(w.lowF) + '°'));
+				return $elm$core$String$fromInt(w.lowF) + ('° - ' + ($elm$core$String$fromInt(w.highF) + '°'));
 			} else {
 				return '';
 			}

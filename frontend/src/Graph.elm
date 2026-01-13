@@ -734,7 +734,7 @@ viewGraph entries currentTime maybeWeather =
         weatherStr =
             case maybeWeather of
                 Just w ->
-                    String.fromInt w.highF ++ "° / " ++ String.fromInt w.lowF ++ "°"
+                    String.fromInt w.lowF ++ "° - " ++ String.fromInt w.highF ++ "°"
 
                 Nothing ->
                     ""
