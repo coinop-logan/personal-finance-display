@@ -47,9 +47,9 @@ endDate = dateToDays "2026-01-31"
 totalDays : Int
 totalDays = endDate - startDate
 
--- Y axis: yMin will be calculated from credit limit, yMax is 15k
+-- Y axis: yMin will be calculated from credit limit, yMax is 20k
 yMax : Float
-yMax = 15.0  -- in thousands
+yMax = 20.0  -- in thousands
 
 
 -- COLORS
