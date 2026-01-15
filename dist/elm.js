@@ -16058,7 +16058,6 @@ var $author$project$Graph$dayToX = F2(
 	});
 var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
 var $author$project$Graph$colorOrange = '#f97316';
-var $elm$svg$Svg$Attributes$strokeLinecap = _VirtualDom_attribute('stroke-linecap');
 var $author$project$Graph$marginTop = 30;
 var $author$project$Graph$graphHeight = 1080;
 var $author$project$Graph$marginBottom = 50;
@@ -16091,23 +16090,23 @@ var $author$project$Graph$drawDailyPaySegments = F2(
 							var yTop = A2($author$project$Graph$valueToY, yMinK, prevEarned + current.a9);
 							var yBottom = A2($author$project$Graph$valueToY, yMinK, prevEarned);
 							var x = A2($author$project$Graph$dayToX, yMinK, current.y);
+							var rectWidth = 5;
+							var rectHeight = yBottom - yTop;
 							return _List_fromArray(
 								[
 									A2(
-									$elm$svg$Svg$line,
+									$elm$svg$Svg$rect,
 									_List_fromArray(
 										[
-											$elm$svg$Svg$Attributes$x1(
-											$elm$core$String$fromFloat(x)),
-											$elm$svg$Svg$Attributes$y1(
-											$elm$core$String$fromFloat(yBottom)),
-											$elm$svg$Svg$Attributes$x2(
-											$elm$core$String$fromFloat(x)),
-											$elm$svg$Svg$Attributes$y2(
+											$elm$svg$Svg$Attributes$x(
+											$elm$core$String$fromFloat(x - (rectWidth / 2))),
+											$elm$svg$Svg$Attributes$y(
 											$elm$core$String$fromFloat(yTop)),
-											$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorOrange),
-											$elm$svg$Svg$Attributes$strokeWidth('6'),
-											$elm$svg$Svg$Attributes$strokeLinecap('round')
+											$elm$svg$Svg$Attributes$width(
+											$elm$core$String$fromFloat(rectWidth)),
+											$elm$svg$Svg$Attributes$height(
+											$elm$core$String$fromFloat(rectHeight)),
+											$elm$svg$Svg$Attributes$fill($author$project$Graph$colorOrange)
 										]),
 									_List_Nil)
 								]);

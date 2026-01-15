@@ -401,15 +401,15 @@ drawDailyPaySegments yMinK dayDataList =
                                     x = dayToX yMinK current.day
                                     yBottom = valueToY yMinK prevEarned
                                     yTop = valueToY yMinK (prevEarned + current.dailyPayEarned)
+                                    rectWidth = 5
+                                    rectHeight = yBottom - yTop  -- yBottom > yTop in SVG coords
                                 in
-                                [ line
-                                    [ SA.x1 (String.fromFloat x)
-                                    , SA.y1 (String.fromFloat yBottom)
-                                    , SA.x2 (String.fromFloat x)
-                                    , SA.y2 (String.fromFloat yTop)
-                                    , SA.stroke colorOrange
-                                    , SA.strokeWidth "6"
-                                    , SA.strokeLinecap "round"
+                                [ rect
+                                    [ SA.x (String.fromFloat (x - rectWidth / 2))
+                                    , SA.y (String.fromFloat yTop)
+                                    , SA.width (String.fromFloat rectWidth)
+                                    , SA.height (String.fromFloat rectHeight)
+                                    , SA.fill colorOrange
                                     ]
                                     []
                                 ]
