@@ -35,6 +35,51 @@ main =
 type alias Flags =
     { today : String }
 
+type NoteColor
+    = NoColor
+    | Green
+    | Blue
+    | Red
+    | Yellow
+
+noteColorToString : NoteColor -> String
+noteColorToString color =
+    case color of
+        NoColor -> ""
+        Green -> "green"
+        Blue -> "blue"
+        Red -> "red"
+        Yellow -> "yellow"
+
+noteColorFromString : String -> NoteColor
+noteColorFromString str =
+    case str of
+        "green" -> Green
+        "blue" -> Blue
+        "red" -> Red
+        "yellow" -> Yellow
+        _ -> NoColor
+
+-- Encode note with color prefix (e.g., "green:Got a bonus!")
+encodeNoteWithColor : NoteColor -> String -> String
+encodeNoteWithColor color noteText =
+    case color of
+        NoColor -> noteText
+        _ -> noteColorToString color ++ ":" ++ noteText
+
+-- Decode note with color prefix, returns (color, text)
+decodeNoteWithColor : String -> (NoteColor, String)
+decodeNoteWithColor encoded =
+    case String.split ":" encoded of
+        colorStr :: rest ->
+            let
+                color = noteColorFromString colorStr
+            in
+            case color of
+                NoColor -> (NoColor, encoded)  -- No valid color prefix, treat whole string as note
+                _ -> (color, String.join ":" rest)  -- Valid color, rest is the note text
+        _ -> (NoColor, encoded)
+
 type alias EntryForm =
     { dateDays : Int  -- Days since epoch (2000-01-01 = 0)
     , checking : String
@@ -46,6 +91,7 @@ type alias EntryForm =
     , otherIncoming : String
     , personalDebt : String
     , note : String
+    , noteColor : NoteColor
     , payCashed : Bool
     }
 
@@ -78,6 +124,7 @@ emptyForm todayDays =
     , otherIncoming = ""
     , personalDebt = ""
     , note = ""
+    , noteColor = NoColor
     , payCashed = False
     }
 
@@ -94,6 +141,7 @@ formFromLastEntry todayDays entry =
     , otherIncoming = String.fromFloat entry.otherIncoming
     , personalDebt = String.fromFloat entry.personalDebt
     , note = ""
+    , noteColor = NoColor
     , payCashed = False  -- Don't carry over, default to unchecked
     }
 
@@ -105,6 +153,9 @@ formFromEntry entry =
         totalMinutes = round (entry.hoursWorked * 60)
         hours = totalMinutes // 60
         minutes = remainderBy 60 totalMinutes
+
+        -- Parse color from note
+        (noteColor, noteText) = decodeNoteWithColor entry.note
     in
     { dateDays = dateToDays entry.date
     , checking = String.fromFloat entry.checking
@@ -115,7 +166,8 @@ formFromEntry entry =
     , payPerHour = String.fromFloat entry.payPerHour
     , otherIncoming = String.fromFloat entry.otherIncoming
     , personalDebt = String.fromFloat entry.personalDebt
-    , note = entry.note
+    , note = noteText
+    , noteColor = noteColor
     , payCashed = entry.payCashed
     }
 
@@ -174,6 +226,7 @@ type Msg
     | UpdateOtherIncoming String
     | UpdatePersonalDebt String
     | UpdateNote String
+    | UpdateNoteColor NoteColor
     | AdjustDate Int
     | TogglePayCashed Bool
     | SubmitEntry
@@ -264,6 +317,10 @@ update msg model =
             let f = model.form in
             ( { model | form = { f | note = val } }, Cmd.none )
 
+        UpdateNoteColor color ->
+            let f = model.form in
+            ( { model | form = { f | noteColor = color } }, Cmd.none )
+
         AdjustDate delta ->
             let f = model.form in
             ( { model | form = { f | dateDays = f.dateDays + delta } }, Cmd.none )
@@ -282,6 +339,9 @@ update msg model =
                 minutes = String.toFloat f.hoursWorkedMinutes |> Maybe.withDefault 0
                 totalHours = hours + (minutes / 60)
 
+                -- Encode color with note
+                encodedNote = encodeNoteWithColor f.noteColor f.note
+
                 maybeEntry =
                     Maybe.map2
                         (\checking creditAvailable ->
@@ -293,7 +353,7 @@ update msg model =
                             , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
                             , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
                             , personalDebt = String.toFloat f.personalDebt |> Maybe.withDefault 0
-                            , note = f.note
+                            , note = encodedNote
                             , payCashed = f.payCashed
                             }
                         )
@@ -510,7 +570,7 @@ viewEntryForm model =
         , viewCompactField "$/hr" model.form.payPerHour UpdatePayPerHour 70
         , viewCompactField "Other $" model.form.otherIncoming UpdateOtherIncoming 80
         , viewCompactField "Pers. Debt" model.form.personalDebt UpdatePersonalDebt 80
-        , viewCompactField "Note" model.form.note UpdateNote 120
+        , viewNoteWithColor model.form.note model.form.noteColor
         , viewCheckbox "Pay Cashed" model.form.payCashed TogglePayCashed
         , Input.button
             [ Background.gradient { angle = pi / 2, steps = [ colors.accent, colors.accentEnd ] }
@@ -574,6 +634,54 @@ viewDatePicker dateDays =
                 )
             ]
         ]
+
+
+viewNoteWithColor : String -> NoteColor -> Element Msg
+viewNoteWithColor noteVal noteColor =
+    column [ spacing 3 ]
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Note")
+        , row [ spacing 5 ]
+            [ Input.text
+                [ Background.color colors.background
+                , Border.width 1
+                , Border.color colors.border
+                , Border.rounded 4
+                , Font.size 14
+                , width (px 90)
+                , paddingXY 8 8
+                ]
+                { onChange = UpdateNote
+                , text = noteVal
+                , placeholder = Nothing
+                , label = Input.labelHidden "Note"
+                }
+            , Input.radioRow
+                [ spacing 4 ]
+                { onChange = UpdateNoteColor
+                , selected = Just noteColor
+                , label = Input.labelHidden "Color"
+                , options =
+                    [ Input.option NoColor (colorDot colors.textMuted "—")
+                    , Input.option Green (colorDot (rgb255 74 222 128) "")
+                    , Input.option Blue (colorDot (rgb255 96 165 250) "")
+                    , Input.option Red (colorDot (rgb255 248 113 113) "")
+                    , Input.option Yellow (colorDot (rgb255 251 191 36) "")
+                    ]
+                }
+            ]
+        ]
+
+colorDot : Color -> String -> Element msg
+colorDot color label =
+    el
+        [ Background.color color
+        , width (px 16)
+        , height (px 16)
+        , Border.rounded 8
+        , Border.width 1
+        , Border.color colors.border
+        ]
+        (if label == "" then none else el [ centerX, centerY, Font.size 10 ] (text label))
 
 
 viewCompactField : String -> String -> (String -> Msg) -> Int -> Element Msg

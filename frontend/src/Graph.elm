@@ -6,7 +6,7 @@ import Element exposing (Element, html, el, text, row, column, inFront, alignRig
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline)
+import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline, circle)
 import Svg.Attributes as SA
 import Time
 
@@ -91,6 +91,43 @@ colorOrange = "#f97316"
 
 -- GRAPH DATA
 
+type NoteColor
+    = NoColor
+    | NoteGreen
+    | NoteBlue
+    | NoteRed
+    | NoteYellow
+
+type alias NoteInfo =
+    { color : NoteColor
+    , text : String
+    }
+
+parseNote : String -> Maybe NoteInfo
+parseNote encoded =
+    if String.isEmpty encoded then
+        Nothing
+    else
+        case String.split ":" encoded of
+            colorStr :: rest ->
+                let
+                    noteText = String.join ":" rest
+                    color = case colorStr of
+                        "green" -> NoteGreen
+                        "blue" -> NoteBlue
+                        "red" -> NoteRed
+                        "yellow" -> NoteYellow
+                        _ -> NoColor
+                in
+                case color of
+                    NoColor ->
+                        -- No valid color prefix, treat whole string as note with no color
+                        if String.isEmpty encoded then Nothing else Just { color = NoColor, text = encoded }
+                    _ ->
+                        if String.isEmpty noteText then Nothing else Just { color = color, text = noteText }
+            [] ->
+                Nothing
+
 type alias DayData =
     { day : Int
     , checking : Float  -- in k
@@ -99,6 +136,7 @@ type alias DayData =
     , creditDrawn : Float  -- credit limit - credit available, in k
     , personalDebt : Float  -- in k
     , creditLimit : Float  -- in k
+    , note : Maybe NoteInfo
     }
 
 
@@ -155,6 +193,7 @@ buildDayData entries =
             , creditDrawn = (entry.creditLimit - entry.creditAvailable) / 1000
             , personalDebt = entry.personalDebt / 1000
             , creditLimit = entry.creditLimit / 1000
+            , note = parseNote entry.note
             }
     in
     entriesByDay
@@ -419,6 +458,65 @@ drawDailyPaySegments yMinK dayDataList =
                     segment ++ buildSegments (Just current) rest
     in
     g [] (buildSegments Nothing dayDataList)
+
+
+{-| Draw note annotations - colored dots with angled text above the highest line value.
+-}
+drawNotes : Float -> List DayData -> Svg msg
+drawNotes yMinK dayDataList =
+    let
+        -- Get colors for note types (dot color and slightly different text color)
+        noteColors : NoteColor -> { dot : String, text : String }
+        noteColors color =
+            case color of
+                NoteGreen -> { dot = "#22c55e", text = "#16a34a" }  -- green-500, green-600
+                NoteBlue -> { dot = "#3b82f6", text = "#2563eb" }   -- blue-500, blue-600
+                NoteRed -> { dot = "#ef4444", text = "#dc2626" }    -- red-500, red-600
+                NoteYellow -> { dot = "#eab308", text = "#ca8a04" } -- yellow-500, yellow-600
+                NoColor -> { dot = "#9ca3af", text = "#6b7280" }    -- gray-400, gray-500
+
+        drawNote : DayData -> List (Svg msg)
+        drawNote dayData =
+            case dayData.note of
+                Nothing -> []
+                Just noteInfo ->
+                    let
+                        colors = noteColors noteInfo.color
+
+                        -- Position at center of the day
+                        x = dayToX yMinK dayData.day + (dayToX yMinK (dayData.day + 1) - dayToX yMinK dayData.day) / 2
+
+                        -- Find highest value for this day
+                        highestValue = max dayData.earnedMoney (max dayData.checking dayData.personalDebt)
+
+                        -- Position dot above the highest line with some padding
+                        dotY = valueToY yMinK (highestValue + 0.5)  -- 0.5k ($500) above
+                        dotRadius = 6
+
+                        -- Text starts from dot, angled 45° up-right
+                        textX = x + 10
+                        textY = dotY - 10
+                    in
+                    [ Svg.circle
+                        [ SA.cx (String.fromFloat x)
+                        , SA.cy (String.fromFloat dotY)
+                        , SA.r (String.fromFloat dotRadius)
+                        , SA.fill colors.dot
+                        ]
+                        []
+                    , text_
+                        [ SA.x (String.fromFloat textX)
+                        , SA.y (String.fromFloat textY)
+                        , SA.fill colors.text
+                        , SA.fontSize "14"
+                        , SA.fontFamily "sans-serif"
+                        , SA.fontWeight "bold"
+                        , SA.transform ("rotate(-45 " ++ String.fromFloat textX ++ " " ++ String.fromFloat textY ++ ")")
+                        ]
+                        [ Svg.text noteInfo.text ]
+                    ]
+    in
+    g [] (List.concatMap drawNote dayDataList)
 
 
 -- AXES
@@ -787,11 +885,13 @@ viewGraph entries currentTime maybeWeather =
                     , dailyPaySegments  -- Orange segments behind blue line
                     , earnedLine
                     , debtLine
-                    , -- Axes and labels (second to last)
+                    , -- Axes and labels
                       drawYAxis yMinK
                     , drawXAxis yMinK
                     , -- End labels
                       endLabels
+                    , -- Notes (on top of everything)
+                      drawNotes yMinK dayData
                     ]
     in
     el [ inFront clockOverlay ] svgGraph
