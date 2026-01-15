@@ -12,6 +12,7 @@ import Time
 
 
 -- CONSTANTS (1920x1080 full HD)
+-- DO NOT CHANGE these dimensions - they match the Pi's display resolution
 
 graphWidth : Float
 graphWidth = 1920
