@@ -486,16 +486,13 @@ drawNotes yMinK dayDataList =
                         -- Position at center of the day
                         x = dayToX yMinK dayData.day + (dayToX yMinK (dayData.day + 1) - dayToX yMinK dayData.day) / 2
 
-                        -- Find highest value for this day
-                        highestValue = max dayData.earnedMoney (max dayData.checking dayData.personalDebt)
-
-                        -- Position dot above the highest line with some padding
-                        dotY = valueToY yMinK (highestValue + 0.5)  -- 0.5k ($500) above
-                        dotRadius = 6
+                        -- Position dot above the blue line (earnedMoney = checking + incoming pay)
+                        dotY = valueToY yMinK (dayData.earnedMoney + 0.5)  -- 0.5k ($500) above
+                        dotRadius = 4
 
                         -- Text starts from dot, angled 45° up-right
-                        textX = x + 10
-                        textY = dotY - 10
+                        textX = x + 8
+                        textY = dotY - 8
                     in
                     [ Svg.circle
                         [ SA.cx (String.fromFloat x)
@@ -507,7 +504,7 @@ drawNotes yMinK dayDataList =
                     , text_
                         [ SA.x (String.fromFloat textX)
                         , SA.y (String.fromFloat textY)
-                        , SA.fill colors.text
+                        , SA.fill "#000000"
                         , SA.fontSize "14"
                         , SA.fontFamily "sans-serif"
                         , SA.fontWeight "bold"
