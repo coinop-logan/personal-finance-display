@@ -226,3 +226,56 @@ Bug fixes and deployment reliability improvements.
 - `frontend/src/Graph.elm` - Date range and Y-axis constants
 - `backend/src/main.rs` - Added SetResponseHeaderLayer for cache control
 - `backend/Cargo.toml` - Added set-header feature
+
+---
+
+## Session 7
+
+**Date:** 2026-01-16
+
+### Summary
+
+Feature development session adding daily pay visualization, note annotations, and various fixes/polish.
+
+### Key Changes
+
+**Orange Daily Pay Indicator:**
+- Added orange vertical bars showing pay earned each day (behind the blue "earned money" line)
+- Properly accounts for Alaska overtime rules: daily (>8hrs) and weekly (>40hrs) at 1.5x rate
+- Added tax withholding estimation (25% / 0.75 multiplier)
+- Extracted `calculateDailyPay` function in `Calculations.elm` for DRY
+- Added comprehensive overtime tests before refactoring
+
+**Note Annotations:**
+- Added ability to mark special events on the graph (e.g., bonuses)
+- Note field now supports color encoding: `color:text` format (green/blue/red/yellow)
+- Entry form has color radio buttons for note color selection
+- Graph displays colored dot above blue line with 45° angled black text
+
+**Graph Adjustments:**
+- Y-axis range increased from 15k to 20k
+- Orange pay indicators use sharp rectangles (not rounded)
+- Added warning comment not to change graph dimensions
+
+**Deployment/Infrastructure Fixes:**
+- Fixed elm.js vs main.js confusion (Makefile copies to correct filename)
+- Fixed `chromium-browser` → `chromium` in launch-kiosk.sh
+- Set up SSH access to Pi (port 2222) for debugging
+- Added Makefile principle to practices-and-principles.md
+
+**Weather Display:**
+- Changed format from separate fields to "low° - high°" format
+
+### Files Modified
+
+- `frontend/src/Graph.elm` - Orange pay segments, note annotations, Y-range
+- `frontend/src/Main.elm` - Note color dropdown, weather format
+- `frontend/src/Calculations.elm` - `calculateDailyPay` function with overtime
+- `frontend/tests/CalculationsTest.elm` - Overtime tests, creditLimit field fix
+- `pi-setup/launch-kiosk.sh` - chromium command fix
+- `~/robot-config/practices-and-principles.md` - Added Makefile principle
+
+### Principles Added
+
+**Build Systems (Makefiles):** Every project should have a Makefile defining the canonical build/deploy process. Always use it—don't "wing it" with ad-hoc commands.
+
