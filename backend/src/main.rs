@@ -114,26 +114,28 @@ async fn get_weather() -> (StatusCode, Json<Weather>) {
     let lon = -149.9003;
 
     // Open-Meteo API - free, no API key needed
+    // current_weather gives us the current temperature
     let url = format!(
-        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min&temperature_unit=fahrenheit&timezone=America/Anchorage&forecast_days=1",
+        "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&temperature_unit=fahrenheit&timezone=America/Anchorage&forecast_days=1",
         lat, lon
     );
 
     let response = match reqwest::get(&url).await {
         Ok(r) => r,
-        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { high_f: 0, low_f: 0 })),
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { current_f: 0, high_f: 0, low_f: 0 })),
     };
 
     let json: serde_json::Value = match response.json().await {
         Ok(j) => j,
-        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { high_f: 0, low_f: 0 })),
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { current_f: 0, high_f: 0, low_f: 0 })),
     };
 
-    // Extract high and low from the response
+    // Extract current, high, and low from the response
+    let current = json["current_weather"]["temperature"].as_f64().unwrap_or(0.0) as i32;
     let high = json["daily"]["temperature_2m_max"][0].as_f64().unwrap_or(0.0) as i32;
     let low = json["daily"]["temperature_2m_min"][0].as_f64().unwrap_or(0.0) as i32;
 
-    (StatusCode::OK, Json(Weather { high_f: high, low_f: low }))
+    (StatusCode::OK, Json(Weather { current_f: current, high_f: high, low_f: low }))
 }
 
 #[tokio::main]

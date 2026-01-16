@@ -44,6 +44,7 @@ pub struct ApiResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
 #[serde(rename_all = "camelCase")]
 pub struct Weather {
+    pub current_f: i32,
     pub high_f: i32,
     pub low_f: i32,
 }
