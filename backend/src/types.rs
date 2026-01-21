@@ -1,37 +1,72 @@
 use elm_rs::{Elm, ElmDecode, ElmEncode};
 use serde::{Deserialize, Serialize};
 
-/// A single finance entry
+/// A job type (template for work logs)
+/// Jobs are hardcoded, not user-editable
 #[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
 #[serde(rename_all = "camelCase")]
-pub struct Entry {
+pub struct Job {
+    pub id: String,
+    pub name: String,
+}
+
+/// A work log entry - hours worked for a specific job on a specific date
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkLog {
+    pub id: i32,
+    pub date: String,
+    pub job_id: String,
+    pub hours: f64,
+    pub pay_rate: f64,
+    pub tax_rate: f64,
+    pub pay_cashed: bool,
+}
+
+/// Request body for creating a new work log
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct NewWorkLog {
+    pub date: String,
+    pub job_id: String,
+    pub hours: f64,
+    pub pay_rate: f64,
+    pub tax_rate: f64,
+    pub pay_cashed: bool,
+}
+
+/// A balance snapshot - financial state on a specific date
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct BalanceSnapshot {
     pub id: i32,
     pub date: String,
     pub checking: f64,
     pub credit_available: f64,
     pub credit_limit: f64,
-    pub hours_worked: f64,
-    pub pay_per_hour: f64,
-    pub other_incoming: f64,
     pub personal_debt: f64,
     pub note: String,
-    pub pay_cashed: bool,
 }
 
-/// Request body for creating a new entry
+/// Request body for creating a new balance snapshot
 #[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
 #[serde(rename_all = "camelCase")]
-pub struct NewEntry {
+pub struct NewBalanceSnapshot {
     pub date: String,
     pub checking: f64,
     pub credit_available: f64,
     pub credit_limit: f64,
-    pub hours_worked: f64,
-    pub pay_per_hour: f64,
-    pub other_incoming: f64,
     pub personal_debt: f64,
     pub note: String,
-    pub pay_cashed: bool,
+}
+
+/// All finance data bundled together for API responses
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct FinanceData {
+    pub jobs: Vec<Job>,
+    pub work_logs: Vec<WorkLog>,
+    pub balance_snapshots: Vec<BalanceSnapshot>,
 }
 
 /// Generic API response for mutations

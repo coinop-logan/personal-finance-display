@@ -1,26 +1,15 @@
 module Calculations exposing
-    ( incomingPayForEntry
-    , calculateDailyPay
-    , dateToWeekNumber
+    ( calculateIncomingPay
+    , calculateDailyPayForWorkLogs
     , dateToDays
     , daysToDateString
     , dayOfWeekName
     )
 
-{-| Financial calculations module.
-
-These calculations are designed to be reusable across the entry page display
-and the graph visualization.
--}
-
-import Api.Types exposing (Entry)
+import Api.Types exposing (WorkLog, BalanceSnapshot)
+import Dict exposing (Dict)
 
 
--- DATE HELPERS (needed for week calculations)
-
-
-{-| Convert date string "YYYY-MM-DD" to days since epoch (2000-01-01 = 0)
--}
 dateToDays : String -> Int
 dateToDays dateStr =
     case parseDate dateStr of
@@ -31,8 +20,6 @@ dateToDays dateStr =
             0
 
 
-{-| Convert days since epoch back to "YYYY-MM-DD" string
--}
 daysToDateString : Int -> String
 daysToDateString days =
     let
@@ -41,13 +28,8 @@ daysToDateString days =
     formatDate year month day
 
 
-{-| Get three-letter weekday name from days since epoch.
-2000-01-01 was a Saturday.
--}
 dayOfWeekName : Int -> String
 dayOfWeekName days =
-    -- 2000-01-01 (day 0) was Saturday
-    -- So: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
     case modBy 7 days of
         0 -> "Sat"
         1 -> "Sun"
@@ -56,7 +38,7 @@ dayOfWeekName days =
         4 -> "Wed"
         5 -> "Thu"
         6 -> "Fri"
-        _ -> "???"  -- Should never happen
+        _ -> "???"
 
 
 parseDate : String -> Maybe ( Int, Int, Int )
@@ -159,126 +141,90 @@ isLeapYear year =
     (modBy 4 year == 0) && (modBy 100 year /= 0 || modBy 400 year == 0)
 
 
--- WEEK CALCULATIONS
-
-
-{-| Get week number from days since epoch.
-Week starts on Sunday (consistent with typical US payroll).
--}
-dateToWeekNumber : Int -> Int
-dateToWeekNumber days =
-    -- 2000-01-01 was a Saturday, so day 0 is in week 0
-    -- Sunday would be day 1, which starts week 1
-    (days + 1) // 7
-
-
-{-| Get the Sunday (first day) of the week containing the given day -}
 sundayOfWeek : Int -> Int
 sundayOfWeek days =
-    -- 2000-01-01 (day 0) was Saturday
-    -- So: 0=Sat, 1=Sun, 2=Mon, ...
-    -- To get Sunday: subtract (dayOfWeek - 1), but handle Saturday specially
     let
-        dayOfWeek = modBy 7 days  -- 0=Sat, 1=Sun, 2=Mon, etc.
+        dayOfWeek = modBy 7 days
     in
     if dayOfWeek == 0 then
-        -- Saturday: Sunday is tomorrow, but we want *previous* Sunday
         days - 6
     else
-        -- Sunday=1, Mon=2, etc. Subtract (dayOfWeek - 1) to get to Sunday
         days - (dayOfWeek - 1)
 
 
--- INCOMING PAY CALCULATIONS
-
-
-{-| Calculate incoming pay as of a specific entry's date.
-
-Algorithm:
-1. Find Sunday of the target entry's week (current week)
-2. Check if ANY entry from Sunday to target date (inclusive) has payCashed=true
-3. If payCashed found in current week: count ONLY current week (from Sunday)
-4. If NO payCashed in current week: count current week + previous week
-5. For each week, apply Alaska overtime rules:
-   - Regular hours (capped at 8/day, 40/week)
-   - Overtime hours (daily >8 OR weekly >40, at 1.5x)
-6. Apply tax multiplier (placeholder, currently 1.0)
--}
-incomingPayForEntry : Entry -> List Entry -> Float
-incomingPayForEntry targetEntry allEntries =
+calculateIncomingPay : Int -> List WorkLog -> Float
+calculateIncomingPay targetDay workLogs =
     let
-        targetDays = dateToDays targetEntry.date
-        currentWeekSunday = sundayOfWeek targetDays
+        currentWeekSunday = sundayOfWeek targetDay
         previousWeekSunday = currentWeekSunday - 7
 
-        -- Get entries up to and including the target date, sorted by date
-        entriesUpToTarget =
-            allEntries
-                |> List.filter (\e -> dateToDays e.date <= targetDays)
-                |> List.sortBy .date
+        logsUpToTarget =
+            workLogs
+                |> List.filter (\w -> dateToDays w.date <= targetDay)
 
-        -- Check if ANY entry in current week (Sunday to target date) has payCashed=true
+        currentWeekLogs =
+            logsUpToTarget
+                |> List.filter (\w -> dateToDays w.date >= currentWeekSunday)
+
+        -- Check if any log in current week (up to target date) has payCashed=true
         hasPayCashedInCurrentWeek =
-            entriesUpToTarget
-                |> List.any (\e ->
-                    let eDays = dateToDays e.date
-                    in e.payCashed && eDays >= currentWeekSunday && eDays <= targetDays
+            currentWeekLogs
+                |> List.any .payCashed
+
+        previousWeekLogs =
+            logsUpToTarget
+                |> List.filter (\w ->
+                    let wDays = dateToDays w.date
+                    in wDays >= previousWeekSunday && wDays < currentWeekSunday
                 )
 
-        -- Get pay rate from target entry
-        payPerHour = targetEntry.payPerHour
+        currentWeekPay = calculateWeekPayByJob currentWeekLogs
 
-        -- Current week entries (from Sunday to target date)
-        currentWeekEntries =
-            entriesUpToTarget
-                |> List.filter (\e -> dateToDays e.date >= currentWeekSunday)
-                |> List.sortBy .date
-
-        currentWeekPay = calculateWeekPayWithOvertime currentWeekEntries payPerHour
-
-        -- Previous week entries (only if no payCashed in current week)
+        -- Only count previous week if no payCashed in current week
         previousWeekPay =
             if hasPayCashedInCurrentWeek then
-                -- payCashed in current week means previous week is paid, don't count it
                 0
             else
-                -- No payCashed in current week, count previous week too
-                let
-                    prevWeekEntries =
-                        entriesUpToTarget
-                            |> List.filter (\e ->
-                                let eDays = dateToDays e.date
-                                in eDays >= previousWeekSunday && eDays < currentWeekSunday
-                            )
-                            |> List.sortBy .date
-                in
-                calculateWeekPayWithOvertime prevWeekEntries payPerHour
+                calculateWeekPayByJob previousWeekLogs
     in
-    -- Tax is already applied in calculateDailyPay (called by calculateWeekPayWithOvertime)
     currentWeekPay + previousWeekPay
 
 
-{-| Calculate pay for a week with Alaska overtime rules.
-
-Iterates through days chronologically, tracking:
-- Daily overtime: any hours over 8 in a single day
-- Weekly overtime: once regular hours hit 40, additional regular hours become overtime
-
-Note: Overtime hours do NOT count toward the 40-hour weekly threshold.
--}
-calculateWeekPayWithOvertime : List Entry -> Float -> Float
-calculateWeekPayWithOvertime entries payPerHour =
+calculateWeekPayByJob : List WorkLog -> Float
+calculateWeekPayByJob logs =
     let
-        -- Process each day, accumulating regular hours and total pay
-        processDay : Entry -> { accumulatedRegular : Float, totalPay : Float } -> { accumulatedRegular : Float, totalPay : Float }
-        processDay entry acc =
-            let
-                dayPay = calculateDailyPay entry.hoursWorked payPerHour acc.accumulatedRegular
+        logsByJob : Dict String (List WorkLog)
+        logsByJob =
+            logs
+                |> List.foldl
+                    (\log acc ->
+                        let
+                            existing = Dict.get log.jobId acc |> Maybe.withDefault []
+                        in
+                        Dict.insert log.jobId (log :: existing) acc
+                    )
+                    Dict.empty
 
-                -- Calculate how many regular hours this day added to the weekly total
-                -- (for tracking purposes, to pass to next day)
-                hoursToday = entry.hoursWorked
-                dailyRegular = min hoursToday 8
+        payPerJob : List Float
+        payPerJob =
+            Dict.values logsByJob
+                |> List.map (\jobLogs ->
+                    jobLogs
+                        |> List.sortBy .date
+                        |> calculateWeekPayWithOvertime
+                )
+    in
+    List.sum payPerJob
+
+
+calculateWeekPayWithOvertime : List WorkLog -> Float
+calculateWeekPayWithOvertime logs =
+    let
+        processDay : WorkLog -> { accumulatedRegular : Float, totalPay : Float } -> { accumulatedRegular : Float, totalPay : Float }
+        processDay log acc =
+            let
+                dayPay = calculateDailyPayForLog log acc.accumulatedRegular
+                dailyRegular = min log.hours 8
                 regularRoomLeft = max 0 (40 - acc.accumulatedRegular)
                 regularAdded = min dailyRegular regularRoomLeft
             in
@@ -287,48 +233,74 @@ calculateWeekPayWithOvertime entries payPerHour =
             }
 
         result =
-            List.foldl processDay { accumulatedRegular = 0, totalPay = 0 } entries
+            List.foldl processDay { accumulatedRegular = 0, totalPay = 0 } logs
     in
     result.totalPay
 
 
-{-| Calculate pay for a single day with Alaska overtime rules.
-
-Takes into account:
-- Daily overtime: hours over 8 in this day (1.5x rate)
-- Weekly overtime: if accumulated regular hours already >= 40, all hours are OT
-- Tax withholding: 25% withheld (0.75 multiplier)
-
-Arguments:
-- hoursToday: hours worked this day
-- payPerHour: hourly pay rate
-- accumulatedWeeklyRegular: regular hours already worked earlier this week (0-40)
-
-Returns: pay earned this day after tax
--}
-calculateDailyPay : Float -> Float -> Float -> Float
-calculateDailyPay hoursToday payPerHour accumulatedWeeklyRegular =
+calculateDailyPayForLog : WorkLog -> Float -> Float
+calculateDailyPayForLog log accumulatedWeeklyRegular =
     let
-        taxMultiplier = 0.75
+        taxMultiplier = 1.0 - log.taxRate
 
-        -- Daily overtime: hours over 8
-        dailyRegular = min hoursToday 8
-        dailyOvertime = max 0 (hoursToday - 8)
+        dailyRegular = min log.hours 8
+        dailyOvertime = max 0 (log.hours - 8)
 
-        -- Weekly overtime: how much room left in the 40hr regular bucket?
         regularRoomLeft = max 0 (40 - accumulatedWeeklyRegular)
-
-        -- Of the daily regular hours, how many fit in the weekly regular bucket?
         regularHours = min dailyRegular regularRoomLeft
-
-        -- Any daily regular hours that don't fit become weekly overtime
         weeklyOvertime = dailyRegular - regularHours
-
-        -- Total overtime = daily OT + weekly OT
         totalOvertime = dailyOvertime + weeklyOvertime
 
-        -- Calculate pay before tax
-        regularPay = regularHours * payPerHour
-        overtimePay = totalOvertime * payPerHour * 1.5
+        regularPay = regularHours * log.payRate
+        overtimePay = totalOvertime * log.payRate * 1.5
     in
     (regularPay + overtimePay) * taxMultiplier
+
+
+calculateDailyPayForWorkLogs : Int -> List WorkLog -> Float
+calculateDailyPayForWorkLogs targetDay allWorkLogs =
+    let
+        weekSunday = sundayOfWeek targetDay
+
+        logsInWeekBeforeTarget =
+            allWorkLogs
+                |> List.filter (\w ->
+                    let wDay = dateToDays w.date
+                    in wDay >= weekSunday && wDay < targetDay
+                )
+
+        logsOnTargetDay =
+            allWorkLogs
+                |> List.filter (\w -> dateToDays w.date == targetDay)
+
+        logsByJob : Dict String (List WorkLog)
+        logsByJob =
+            logsInWeekBeforeTarget
+                |> List.foldl
+                    (\log acc ->
+                        let existing = Dict.get log.jobId acc |> Maybe.withDefault []
+                        in Dict.insert log.jobId (log :: existing) acc
+                    )
+                    Dict.empty
+
+        accumulatedHoursByJob : Dict String Float
+        accumulatedHoursByJob =
+            Dict.map
+                (\_ logs ->
+                    logs
+                        |> List.map (\l -> min l.hours 8)
+                        |> List.sum
+                )
+                logsByJob
+
+        payForTargetDay =
+            logsOnTargetDay
+                |> List.map (\log ->
+                    let
+                        accHours = Dict.get log.jobId accumulatedHoursByJob |> Maybe.withDefault 0
+                    in
+                    calculateDailyPayForLog log accHours
+                )
+                |> List.sum
+    in
+    payForTargetDay

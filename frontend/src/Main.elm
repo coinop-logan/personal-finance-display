@@ -1,9 +1,9 @@
 module Main exposing (main)
 
-import Api.Types exposing (Entry, NewEntry, Weather, entryDecoder, newEntryEncoder, weatherDecoder)
+import Api.Types exposing (BalanceSnapshot, WorkLog, Job, FinanceData, NewBalanceSnapshot, NewWorkLog, Weather, financeDataDecoder, newBalanceSnapshotEncoder, newWorkLogEncoder, weatherDecoder)
 import Browser
 import Browser.Navigation as Nav
-import Calculations exposing (dateToDays, daysToDateString, dayOfWeekName, incomingPayForEntry)
+import Calculations exposing (dateToDays, daysToDateString, dayOfWeekName, calculateIncomingPay)
 import Element exposing (..)
 import Graph
 import Element.Background as Background
@@ -16,8 +16,6 @@ import Time
 import Url exposing (Url)
 
 
--- MAIN
-
 main : Program Flags Model Msg
 main =
     Browser.application
@@ -29,8 +27,6 @@ main =
         , onUrlRequest = LinkClicked
         }
 
-
--- MODEL
 
 type alias Flags =
     { today : String }
@@ -60,14 +56,12 @@ noteColorFromString str =
         "yellow" -> Yellow
         _ -> NoColor
 
--- Encode note with color prefix (e.g., "green:Got a bonus!")
 encodeNoteWithColor : NoteColor -> String -> String
 encodeNoteWithColor color noteText =
     case color of
         NoColor -> noteText
         _ -> noteColorToString color ++ ":" ++ noteText
 
--- Decode note with color prefix, returns (color, text)
 decodeNoteWithColor : String -> (NoteColor, String)
 decodeNoteWithColor encoded =
     case String.split ":" encoded of
@@ -76,22 +70,28 @@ decodeNoteWithColor encoded =
                 color = noteColorFromString colorStr
             in
             case color of
-                NoColor -> (NoColor, encoded)  -- No valid color prefix, treat whole string as note
-                _ -> (color, String.join ":" rest)  -- Valid color, rest is the note text
+                NoColor -> (NoColor, encoded)
+                _ -> (color, String.join ":" rest)
         _ -> (NoColor, encoded)
 
-type alias EntryForm =
-    { dateDays : Int  -- Days since epoch (2000-01-01 = 0)
+
+type alias BalanceForm =
+    { dateDays : Int
     , checking : String
     , creditAvailable : String
     , creditLimit : String
-    , hoursWorkedHours : String
-    , hoursWorkedMinutes : String
-    , payPerHour : String
-    , otherIncoming : String
     , personalDebt : String
     , note : String
     , noteColor : NoteColor
+    }
+
+type alias WorkLogForm =
+    { dateDays : Int
+    , jobId : String
+    , hoursHours : String
+    , hoursMinutes : String
+    , payRate : String
+    , taxRate : String
     , payCashed : Bool
     }
 
@@ -100,11 +100,14 @@ type Page
     | EntryPage
 
 type alias Model =
-    { entries : List Entry
+    { jobs : List Job
+    , workLogs : List WorkLog
+    , balanceSnapshots : List BalanceSnapshot
     , error : Maybe String
     , loading : Bool
     , page : Page
-    , form : EntryForm
+    , balanceForm : BalanceForm
+    , workLogForm : WorkLogForm
     , submitting : Bool
     , key : Nav.Key
     , todayDays : Int
@@ -112,74 +115,77 @@ type alias Model =
     , weather : Maybe Weather
     }
 
-emptyForm : Int -> EntryForm
-emptyForm todayDays =
+emptyBalanceForm : Int -> BalanceForm
+emptyBalanceForm todayDays =
     { dateDays = todayDays
     , checking = ""
     , creditAvailable = ""
     , creditLimit = ""
-    , hoursWorkedHours = ""
-    , hoursWorkedMinutes = ""
-    , payPerHour = ""
-    , otherIncoming = ""
     , personalDebt = ""
     , note = ""
     , noteColor = NoColor
+    }
+
+emptyWorkLogForm : Int -> String -> WorkLogForm
+emptyWorkLogForm todayDays defaultJobId =
+    { dateDays = todayDays
+    , jobId = defaultJobId
+    , hoursHours = ""
+    , hoursMinutes = ""
+    , payRate = ""
+    , taxRate = "0.25"
     , payCashed = False
     }
 
 
-formFromLastEntry : Int -> Entry -> EntryForm
-formFromLastEntry todayDays entry =
-    { dateDays = todayDays
-    , checking = String.fromFloat entry.checking
-    , creditAvailable = String.fromFloat entry.creditAvailable
-    , creditLimit = String.fromFloat entry.creditLimit
-    , hoursWorkedHours = ""  -- Don't carry over hours, default to empty
-    , hoursWorkedMinutes = ""
-    , payPerHour = String.fromFloat entry.payPerHour
-    , otherIncoming = String.fromFloat entry.otherIncoming
-    , personalDebt = String.fromFloat entry.personalDebt
-    , note = ""
-    , noteColor = NoColor
-    , payCashed = False  -- Don't carry over, default to unchecked
-    }
-
-
-formFromEntry : Entry -> EntryForm
-formFromEntry entry =
+balanceFormFromSnapshot : BalanceSnapshot -> BalanceForm
+balanceFormFromSnapshot snapshot =
     let
-        -- Convert decimal hours back to hours:minutes
-        totalMinutes = round (entry.hoursWorked * 60)
-        hours = totalMinutes // 60
-        minutes = remainderBy 60 totalMinutes
-
-        -- Parse color from note
-        (noteColor, noteText) = decodeNoteWithColor entry.note
+        (noteColor, noteText) = decodeNoteWithColor snapshot.note
     in
-    { dateDays = dateToDays entry.date
-    , checking = String.fromFloat entry.checking
-    , creditAvailable = String.fromFloat entry.creditAvailable
-    , creditLimit = String.fromFloat entry.creditLimit
-    , hoursWorkedHours = if hours > 0 || minutes > 0 then String.fromInt hours else ""
-    , hoursWorkedMinutes = if hours > 0 || minutes > 0 then String.fromInt minutes else ""
-    , payPerHour = String.fromFloat entry.payPerHour
-    , otherIncoming = String.fromFloat entry.otherIncoming
-    , personalDebt = String.fromFloat entry.personalDebt
+    { dateDays = dateToDays snapshot.date
+    , checking = String.fromFloat snapshot.checking
+    , creditAvailable = String.fromFloat snapshot.creditAvailable
+    , creditLimit = String.fromFloat snapshot.creditLimit
+    , personalDebt = String.fromFloat snapshot.personalDebt
     , note = noteText
     , noteColor = noteColor
-    , payCashed = entry.payCashed
     }
 
 
-formFromEntries : Int -> List Entry -> EntryForm
-formFromEntries todayDays entries =
-    case List.reverse entries |> List.head of
-        Just lastEntry ->
-            formFromLastEntry todayDays lastEntry
-
+balanceFormFromLastSnapshot : Int -> List BalanceSnapshot -> BalanceForm
+balanceFormFromLastSnapshot todayDays snapshots =
+    case List.reverse snapshots |> List.head of
+        Just snapshot ->
+            { dateDays = todayDays
+            , checking = String.fromFloat snapshot.checking
+            , creditAvailable = String.fromFloat snapshot.creditAvailable
+            , creditLimit = String.fromFloat snapshot.creditLimit
+            , personalDebt = String.fromFloat snapshot.personalDebt
+            , note = ""
+            , noteColor = NoColor
+            }
         Nothing ->
-            emptyForm todayDays
+            emptyBalanceForm todayDays
+
+
+workLogFormFromLastLog : Int -> String -> List WorkLog -> WorkLogForm
+workLogFormFromLastLog todayDays jobId workLogs =
+    let
+        logsForJob = List.filter (\w -> w.jobId == jobId) workLogs
+    in
+    case List.reverse logsForJob |> List.head of
+        Just log ->
+            { dateDays = todayDays
+            , jobId = jobId
+            , hoursHours = ""
+            , hoursMinutes = ""
+            , payRate = String.fromFloat log.payRate
+            , taxRate = String.fromFloat log.taxRate
+            , payCashed = False
+            }
+        Nothing ->
+            emptyWorkLogForm todayDays jobId
 
 
 urlToPage : Url -> Page
@@ -194,11 +200,14 @@ init flags url key =
     let
         todayDays = dateToDays flags.today
     in
-    ( { entries = []
+    ( { jobs = []
+      , workLogs = []
+      , balanceSnapshots = []
       , error = Nothing
       , loading = True
       , page = urlToPage url
-      , form = emptyForm todayDays
+      , balanceForm = emptyBalanceForm todayDays
+      , workLogForm = emptyWorkLogForm todayDays "alborn"
       , submitting = False
       , key = key
       , todayDays = todayDays
@@ -209,47 +218,69 @@ init flags url key =
     )
 
 
--- UPDATE
-
 type Msg
-    = GotData (Result Http.Error (List Entry))
+    = GotData (Result Http.Error FinanceData)
     | GotWeather (Result Http.Error Weather)
     | Tick Time.Posix
     | UrlChanged Url
     | LinkClicked Browser.UrlRequest
-    | UpdateChecking String
-    | UpdateCreditAvailable String
-    | UpdateCreditLimit String
-    | UpdateHoursWorkedHours String
-    | UpdateHoursWorkedMinutes String
-    | UpdatePayPerHour String
-    | UpdateOtherIncoming String
-    | UpdatePersonalDebt String
-    | UpdateNote String
-    | UpdateNoteColor NoteColor
-    | AdjustDate Int
-    | TogglePayCashed Bool
-    | SubmitEntry
-    | SubmitResult (Result Http.Error ())
-    | EditEntry Entry
-    | DeleteEntry Int
-    | DeleteResult (Result Http.Error ())
+    -- Balance form
+    | UpdateBalanceChecking String
+    | UpdateBalanceCreditAvailable String
+    | UpdateBalanceCreditLimit String
+    | UpdateBalancePersonalDebt String
+    | UpdateBalanceNote String
+    | UpdateBalanceNoteColor NoteColor
+    | AdjustBalanceDate Int
+    | SubmitBalance
+    | SubmitBalanceResult (Result Http.Error ())
+    | EditSnapshot BalanceSnapshot
+    | DeleteSnapshot Int
+    | DeleteSnapshotResult (Result Http.Error ())
+    -- Work log form
+    | UpdateWorkLogJobId String
+    | UpdateWorkLogHoursHours String
+    | UpdateWorkLogHoursMinutes String
+    | UpdateWorkLogPayRate String
+    | UpdateWorkLogTaxRate String
+    | UpdateWorkLogPayCashed Bool
+    | AdjustWorkLogDate Int
+    | SubmitWorkLog
+    | SubmitWorkLogResult (Result Http.Error ())
+    | DeleteWorkLog Int
+    | DeleteWorkLogResult (Result Http.Error ())
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         GotData result ->
             case result of
-                Ok entries ->
+                Ok data ->
                     let
-                        -- Only populate form from entries on initial load (when form is empty)
-                        updatedForm =
-                            if model.form.checking == "" then
-                                formFromEntries model.todayDays entries
+                        updatedBalanceForm =
+                            if model.balanceForm.checking == "" then
+                                balanceFormFromLastSnapshot model.todayDays data.balanceSnapshots
                             else
-                                model.form
+                                model.balanceForm
+
+                        defaultJobId =
+                            data.jobs |> List.head |> Maybe.map .id |> Maybe.withDefault "alborn"
+
+                        updatedWorkLogForm =
+                            if model.workLogForm.payRate == "" then
+                                workLogFormFromLastLog model.todayDays defaultJobId data.workLogs
+                            else
+                                model.workLogForm
                     in
-                    ( { model | entries = entries, loading = False, error = Nothing, form = updatedForm }
+                    ( { model
+                        | jobs = data.jobs
+                        , workLogs = data.workLogs
+                        , balanceSnapshots = data.balanceSnapshots
+                        , loading = False
+                        , error = Nothing
+                        , balanceForm = updatedBalanceForm
+                        , workLogForm = updatedWorkLogForm
+                      }
                     , Cmd.none
                     )
 
@@ -264,7 +295,6 @@ update msg model =
                     ( { model | weather = Just weather }, Cmd.none )
 
                 Err _ ->
-                    -- Silently ignore weather fetch errors
                     ( model, Cmd.none )
 
         Tick time ->
@@ -281,89 +311,59 @@ update msg model =
                 Browser.External href ->
                     ( model, Nav.load href )
 
-        UpdateChecking val ->
-            let f = model.form in
-            ( { model | form = { f | checking = val } }, Cmd.none )
+        -- Balance form updates
+        UpdateBalanceChecking val ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | checking = val } }, Cmd.none )
 
-        UpdateCreditAvailable val ->
-            let f = model.form in
-            ( { model | form = { f | creditAvailable = val } }, Cmd.none )
+        UpdateBalanceCreditAvailable val ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | creditAvailable = val } }, Cmd.none )
 
-        UpdateCreditLimit val ->
-            let f = model.form in
-            ( { model | form = { f | creditLimit = val } }, Cmd.none )
+        UpdateBalanceCreditLimit val ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | creditLimit = val } }, Cmd.none )
 
-        UpdateHoursWorkedHours val ->
-            let f = model.form in
-            ( { model | form = { f | hoursWorkedHours = val } }, Cmd.none )
+        UpdateBalancePersonalDebt val ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | personalDebt = val } }, Cmd.none )
 
-        UpdateHoursWorkedMinutes val ->
-            let f = model.form in
-            ( { model | form = { f | hoursWorkedMinutes = val } }, Cmd.none )
+        UpdateBalanceNote val ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | note = val } }, Cmd.none )
 
-        UpdatePayPerHour val ->
-            let f = model.form in
-            ( { model | form = { f | payPerHour = val } }, Cmd.none )
+        UpdateBalanceNoteColor color ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | noteColor = color } }, Cmd.none )
 
-        UpdateOtherIncoming val ->
-            let f = model.form in
-            ( { model | form = { f | otherIncoming = val } }, Cmd.none )
+        AdjustBalanceDate delta ->
+            let f = model.balanceForm in
+            ( { model | balanceForm = { f | dateDays = f.dateDays + delta } }, Cmd.none )
 
-        UpdatePersonalDebt val ->
-            let f = model.form in
-            ( { model | form = { f | personalDebt = val } }, Cmd.none )
-
-        UpdateNote val ->
-            let f = model.form in
-            ( { model | form = { f | note = val } }, Cmd.none )
-
-        UpdateNoteColor color ->
-            let f = model.form in
-            ( { model | form = { f | noteColor = color } }, Cmd.none )
-
-        AdjustDate delta ->
-            let f = model.form in
-            ( { model | form = { f | dateDays = f.dateDays + delta } }, Cmd.none )
-
-        TogglePayCashed val ->
-            let f = model.form in
-            ( { model | form = { f | payCashed = val } }, Cmd.none )
-
-        SubmitEntry ->
+        SubmitBalance ->
             let
-                f = model.form
+                f = model.balanceForm
                 dateStr = daysToDateString f.dateDays
-
-                -- Convert hours:minutes to decimal hours
-                hours = String.toFloat f.hoursWorkedHours |> Maybe.withDefault 0
-                minutes = String.toFloat f.hoursWorkedMinutes |> Maybe.withDefault 0
-                totalHours = hours + (minutes / 60)
-
-                -- Encode color with note
                 encodedNote = encodeNoteWithColor f.noteColor f.note
 
-                maybeEntry =
+                maybeSnapshot =
                     Maybe.map2
                         (\checking creditAvailable ->
                             { date = dateStr
                             , checking = checking
                             , creditAvailable = creditAvailable
                             , creditLimit = String.toFloat f.creditLimit |> Maybe.withDefault 0
-                            , hoursWorked = totalHours
-                            , payPerHour = String.toFloat f.payPerHour |> Maybe.withDefault 0
-                            , otherIncoming = String.toFloat f.otherIncoming |> Maybe.withDefault 0
                             , personalDebt = String.toFloat f.personalDebt |> Maybe.withDefault 0
                             , note = encodedNote
-                            , payCashed = f.payCashed
                             }
                         )
                         (String.toFloat f.checking)
                         (String.toFloat f.creditAvailable)
             in
-            case maybeEntry of
-                Just newEntry ->
+            case maybeSnapshot of
+                Just newSnapshot ->
                     ( { model | submitting = True, error = Nothing }
-                    , submitEntry newEntry
+                    , submitBalanceSnapshot newSnapshot
                     )
 
                 Nothing ->
@@ -371,13 +371,12 @@ update msg model =
                     , Cmd.none
                     )
 
-        SubmitResult result ->
+        SubmitBalanceResult result ->
             case result of
                 Ok _ ->
-                    -- Reset form to empty so GotData will repopulate from new entry list
                     ( { model
                         | submitting = False
-                        , form = emptyForm model.todayDays
+                        , balanceForm = emptyBalanceForm model.todayDays
                       }
                     , fetchData
                     )
@@ -390,13 +389,117 @@ update msg model =
                     , Cmd.none
                     )
 
-        EditEntry entry ->
-            ( { model | form = formFromEntry entry }, Cmd.none )
+        EditSnapshot snapshot ->
+            ( { model | balanceForm = balanceFormFromSnapshot snapshot }, Cmd.none )
 
-        DeleteEntry entryId ->
-            ( model, deleteEntry entryId )
+        DeleteSnapshot snapshotId ->
+            ( model, deleteBalanceSnapshot snapshotId )
 
-        DeleteResult result ->
+        DeleteSnapshotResult result ->
+            case result of
+                Ok _ ->
+                    ( model, fetchData )
+
+                Err err ->
+                    ( { model | error = Just (httpErrorToString err) }, Cmd.none )
+
+        -- Work log form updates
+        UpdateWorkLogJobId val ->
+            let
+                f = model.workLogForm
+                -- When job changes, update pay/tax from most recent log for that job
+                newForm = workLogFormFromLastLog model.todayDays val model.workLogs
+            in
+            ( { model | workLogForm = { newForm | dateDays = f.dateDays, hoursHours = f.hoursHours, hoursMinutes = f.hoursMinutes } }, Cmd.none )
+
+        UpdateWorkLogHoursHours val ->
+            let f = model.workLogForm in
+            ( { model | workLogForm = { f | hoursHours = val } }, Cmd.none )
+
+        UpdateWorkLogHoursMinutes val ->
+            let f = model.workLogForm in
+            ( { model | workLogForm = { f | hoursMinutes = val } }, Cmd.none )
+
+        UpdateWorkLogPayRate val ->
+            let f = model.workLogForm in
+            ( { model | workLogForm = { f | payRate = val } }, Cmd.none )
+
+        UpdateWorkLogTaxRate val ->
+            let f = model.workLogForm in
+            ( { model | workLogForm = { f | taxRate = val } }, Cmd.none )
+
+        UpdateWorkLogPayCashed val ->
+            let f = model.workLogForm in
+            ( { model | workLogForm = { f | payCashed = val } }, Cmd.none )
+
+        AdjustWorkLogDate delta ->
+            let f = model.workLogForm in
+            ( { model | workLogForm = { f | dateDays = f.dateDays + delta } }, Cmd.none )
+
+        SubmitWorkLog ->
+            let
+                f = model.workLogForm
+                dateStr = daysToDateString f.dateDays
+
+                hours = String.toFloat f.hoursHours |> Maybe.withDefault 0
+                minutes = String.toFloat f.hoursMinutes |> Maybe.withDefault 0
+                totalHours = hours + (minutes / 60)
+
+                maybeWorkLog =
+                    Maybe.map2
+                        (\payRate taxRate ->
+                            { date = dateStr
+                            , jobId = f.jobId
+                            , hours = totalHours
+                            , payRate = payRate
+                            , taxRate = taxRate
+                            , payCashed = f.payCashed
+                            }
+                        )
+                        (String.toFloat f.payRate)
+                        (String.toFloat f.taxRate)
+            in
+            case maybeWorkLog of
+                Just newWorkLog ->
+                    if totalHours > 0 then
+                        ( { model | submitting = True, error = Nothing }
+                        , submitWorkLog newWorkLog
+                        )
+                    else
+                        ( { model | error = Just "Hours must be greater than 0" }
+                        , Cmd.none
+                        )
+
+                Nothing ->
+                    ( { model | error = Just "Pay rate and tax rate are required" }
+                    , Cmd.none
+                    )
+
+        SubmitWorkLogResult result ->
+            case result of
+                Ok _ ->
+                    let
+                        f = model.workLogForm
+                    in
+                    ( { model
+                        | submitting = False
+                        , workLogForm = { f | hoursHours = "", hoursMinutes = "", payCashed = False }
+                      }
+                    , fetchData
+                    )
+
+                Err err ->
+                    ( { model
+                        | submitting = False
+                        , error = Just (httpErrorToString err)
+                      }
+                    , Cmd.none
+                    )
+
+        DeleteWorkLog workLogId ->
+            ( model, deleteWorkLog workLogId )
+
+        DeleteWorkLogResult result ->
             case result of
                 Ok _ ->
                     ( model, fetchData )
@@ -424,8 +527,6 @@ httpErrorToString err =
             "Bad response: " ++ body
 
 
--- SUBSCRIPTIONS
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model.page of
@@ -436,13 +537,11 @@ subscriptions model =
             Sub.none
 
 
--- HTTP
-
 fetchData : Cmd Msg
 fetchData =
     Http.get
         { url = "/api/data"
-        , expect = Http.expectJson GotData dataDecoder
+        , expect = Http.expectJson GotData financeDataDecoder
         }
 
 fetchWeather : Cmd Msg
@@ -452,32 +551,46 @@ fetchWeather =
         , expect = Http.expectJson GotWeather weatherDecoder
         }
 
-submitEntry : NewEntry -> Cmd Msg
-submitEntry newEntry =
+submitBalanceSnapshot : NewBalanceSnapshot -> Cmd Msg
+submitBalanceSnapshot snapshot =
     Http.post
-        { url = "/api/entry"
-        , body = Http.jsonBody (newEntryEncoder newEntry)
-        , expect = Http.expectWhatever SubmitResult
+        { url = "/api/balance"
+        , body = Http.jsonBody (newBalanceSnapshotEncoder snapshot)
+        , expect = Http.expectWhatever SubmitBalanceResult
         }
 
-deleteEntry : Int -> Cmd Msg
-deleteEntry entryId =
+deleteBalanceSnapshot : Int -> Cmd Msg
+deleteBalanceSnapshot snapshotId =
     Http.request
         { method = "DELETE"
         , headers = []
-        , url = "/api/entry/" ++ String.fromInt entryId
+        , url = "/api/balance/" ++ String.fromInt snapshotId
         , body = Http.emptyBody
-        , expect = Http.expectWhatever DeleteResult
+        , expect = Http.expectWhatever DeleteSnapshotResult
         , timeout = Nothing
         , tracker = Nothing
         }
 
-dataDecoder : Decoder (List Entry)
-dataDecoder =
-    Decode.list entryDecoder
+submitWorkLog : NewWorkLog -> Cmd Msg
+submitWorkLog workLog =
+    Http.post
+        { url = "/api/worklog"
+        , body = Http.jsonBody (newWorkLogEncoder workLog)
+        , expect = Http.expectWhatever SubmitWorkLogResult
+        }
 
+deleteWorkLog : Int -> Cmd Msg
+deleteWorkLog workLogId =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url = "/api/worklog/" ++ String.fromInt workLogId
+        , body = Http.emptyBody
+        , expect = Http.expectWhatever DeleteWorkLogResult
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
--- COLORS
 
 colors =
     { background = rgb255 26 26 46
@@ -492,8 +605,6 @@ colors =
     , border = rgb255 51 51 51
     }
 
-
--- VIEW
 
 view : Model -> Browser.Document Msg
 view model =
@@ -533,7 +644,7 @@ viewGraphPage model =
     if model.loading then
         el [] (text "Loading...")
     else
-        Graph.viewGraph model.entries model.currentTime model.weather
+        Graph.viewGraph model.balanceSnapshots model.workLogs model.currentTime model.weather
 
 viewEntryPage : Model -> Element Msg
 viewEntryPage model =
@@ -543,9 +654,10 @@ viewEntryPage model =
             el [] (text "Loading...")
           else
             column [ spacing 20, width fill ]
-                [ Graph.viewMiniGraph model.entries
-                , viewEntryForm model
-                , viewRecentEntries model.entries
+                [ Graph.viewMiniGraph model.balanceSnapshots model.workLogs
+                , viewBalanceForm model
+                , viewWorkLogForm model
+                , viewRecentData model
                 ]
         , case model.error of
             Just err ->
@@ -554,39 +666,105 @@ viewEntryPage model =
                 none
         ]
 
-viewEntryForm : Model -> Element Msg
-viewEntryForm model =
-    wrappedRow
-        [ Background.color colors.cardBg
-        , padding 15
-        , Border.rounded 12
-        , spacing 10
-        ]
-        [ viewDatePicker model.form.dateDays
-        , viewCompactField "Checking" model.form.checking UpdateChecking 90
-        , viewCompactField "Credit Avail" model.form.creditAvailable UpdateCreditAvailable 90
-        , viewCompactField "Credit Limit" model.form.creditLimit UpdateCreditLimit 90
-        , viewHoursMinutesField model.form.hoursWorkedHours model.form.hoursWorkedMinutes
-        , viewCompactField "$/hr" model.form.payPerHour UpdatePayPerHour 70
-        , viewCompactField "Other $" model.form.otherIncoming UpdateOtherIncoming 80
-        , viewCompactField "Pers. Debt" model.form.personalDebt UpdatePersonalDebt 80
-        , viewNoteWithColor model.form.note model.form.noteColor
-        , viewCheckbox "Pay Cashed" model.form.payCashed TogglePayCashed
-        , Input.button
-            [ Background.gradient { angle = pi / 2, steps = [ colors.accent, colors.accentEnd ] }
-            , paddingXY 20 8
-            , Border.rounded 6
-            , Font.color colors.background
-            , Font.size 20
-            , Font.bold
+viewBalanceForm : Model -> Element Msg
+viewBalanceForm model =
+    column [ spacing 5 ]
+        [ el [ Font.size 14, Font.color colors.textMuted ] (text "Balance Snapshot")
+        , wrappedRow
+            [ Background.color colors.cardBg
+            , padding 15
+            , Border.rounded 12
+            , spacing 10
             ]
-            { onPress = Just SubmitEntry
-            , label = text (if model.submitting then "..." else "+")
+            [ viewDatePicker model.balanceForm.dateDays AdjustBalanceDate
+            , viewCompactField "Checking" model.balanceForm.checking UpdateBalanceChecking 90
+            , viewCompactField "Credit Avail" model.balanceForm.creditAvailable UpdateBalanceCreditAvailable 90
+            , viewCompactField "Credit Limit" model.balanceForm.creditLimit UpdateBalanceCreditLimit 90
+            , viewCompactField "Pers. Debt" model.balanceForm.personalDebt UpdateBalancePersonalDebt 80
+            , viewNoteWithColor model.balanceForm.note model.balanceForm.noteColor
+            , Input.button
+                [ Background.gradient { angle = pi / 2, steps = [ colors.accent, colors.accentEnd ] }
+                , paddingXY 20 8
+                , Border.rounded 6
+                , Font.color colors.background
+                , Font.size 20
+                , Font.bold
+                ]
+                { onPress = Just SubmitBalance
+                , label = text (if model.submitting then "..." else "+")
+                }
+            ]
+        ]
+
+viewWorkLogForm : Model -> Element Msg
+viewWorkLogForm model =
+    column [ spacing 5 ]
+        [ el [ Font.size 14, Font.color colors.textMuted ] (text "Work Log")
+        , wrappedRow
+            [ Background.color colors.cardBg
+            , padding 15
+            , Border.rounded 12
+            , spacing 10
+            ]
+            [ viewDatePicker model.workLogForm.dateDays AdjustWorkLogDate
+            , viewJobPicker model.jobs model.workLogForm.jobId
+            , viewHoursMinutesField model.workLogForm.hoursHours model.workLogForm.hoursMinutes
+            , viewCompactField "$/hr" model.workLogForm.payRate UpdateWorkLogPayRate 70
+            , viewCompactField "Tax %" model.workLogForm.taxRate UpdateWorkLogTaxRate 60
+            , viewPayCashedCheckbox model.workLogForm.payCashed
+            , Input.button
+                [ Background.gradient { angle = pi / 2, steps = [ colors.green, rgb255 34 197 94 ] }
+                , paddingXY 20 8
+                , Border.rounded 6
+                , Font.color colors.background
+                , Font.size 20
+                , Font.bold
+                ]
+                { onPress = Just SubmitWorkLog
+                , label = text (if model.submitting then "..." else "+")
+                }
+            ]
+        ]
+
+viewJobPicker : List Job -> String -> Element Msg
+viewJobPicker jobs selectedJobId =
+    column [ spacing 3 ]
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Job")
+        , Input.radioRow
+            [ spacing 8
+            , padding 8
+            , Background.color colors.background
+            , Border.rounded 4
+            , Border.width 1
+            , Border.color colors.border
+            ]
+            { onChange = UpdateWorkLogJobId
+            , selected = Just selectedJobId
+            , label = Input.labelHidden "Job"
+            , options = List.map (\job -> Input.option job.id (text job.name)) jobs
             }
         ]
 
-viewDatePicker : Int -> Element Msg
-viewDatePicker dateDays =
+viewPayCashedCheckbox : Bool -> Element Msg
+viewPayCashedCheckbox isChecked =
+    column [ spacing 3 ]
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Paid")
+        , Input.checkbox
+            [ padding 8
+            , Background.color colors.background
+            , Border.rounded 4
+            , Border.width 1
+            , Border.color colors.border
+            ]
+            { onChange = UpdateWorkLogPayCashed
+            , checked = isChecked
+            , icon = Input.defaultCheckbox
+            , label = Input.labelRight [ Font.size 12 ] (text "$")
+            }
+        ]
+
+viewDatePicker : Int -> (Int -> Msg) -> Element Msg
+viewDatePicker dateDays adjustMsg =
     let
         dateStr = daysToDateString dateDays
         weekday = dayOfWeekName dateDays
@@ -603,7 +781,7 @@ viewDatePicker dateDays =
                     , paddingXY 8 2
                     , Font.size 11
                     ]
-                    { onPress = Just (AdjustDate 1)
+                    { onPress = Just (adjustMsg 1)
                     , label = text "▲"
                     }
                 , Input.button
@@ -614,7 +792,7 @@ viewDatePicker dateDays =
                     , paddingXY 8 2
                     , Font.size 11
                     ]
-                    { onPress = Just (AdjustDate -1)
+                    { onPress = Just (adjustMsg -1)
                     , label = text "▼"
                     }
                 ]
@@ -650,14 +828,14 @@ viewNoteWithColor noteVal noteColor =
                 , width (px 90)
                 , paddingXY 8 8
                 ]
-                { onChange = UpdateNote
+                { onChange = UpdateBalanceNote
                 , text = noteVal
                 , placeholder = Nothing
                 , label = Input.labelHidden "Note"
                 }
             , Input.radioRow
                 [ spacing 4 ]
-                { onChange = UpdateNoteColor
+                { onChange = UpdateBalanceNoteColor
                 , selected = Just noteColor
                 , label = Input.labelHidden "Color"
                 , options =
@@ -708,7 +886,7 @@ viewCompactField labelText val toMsg widthPx =
 viewHoursMinutesField : String -> String -> Element Msg
 viewHoursMinutesField hoursVal minutesVal =
     column [ spacing 3 ]
-        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Hours Today")
+        [ el [ Font.size 11, Font.color colors.textMuted ] (text "Hours")
         , row []
             [ Input.text
                 [ Background.color colors.background
@@ -719,7 +897,7 @@ viewHoursMinutesField hoursVal minutesVal =
                 , width (px 35)
                 , paddingXY 4 8
                 ]
-                { onChange = UpdateHoursWorkedHours
+                { onChange = UpdateWorkLogHoursHours
                 , text = hoursVal
                 , placeholder = Nothing
                 , label = Input.labelHidden "Hours"
@@ -742,7 +920,7 @@ viewHoursMinutesField hoursVal minutesVal =
                 , width (px 35)
                 , paddingXY 4 8
                 ]
-                { onChange = UpdateHoursWorkedMinutes
+                { onChange = UpdateWorkLogHoursMinutes
                 , text = minutesVal
                 , placeholder = Nothing
                 , label = Input.labelHidden "Minutes"
@@ -751,37 +929,32 @@ viewHoursMinutesField hoursVal minutesVal =
         ]
 
 
-viewCheckbox : String -> Bool -> (Bool -> Msg) -> Element Msg
-viewCheckbox labelText isChecked toMsg =
-    column [ spacing 3, centerX ]
-        [ el [ Font.size 11, Font.color colors.textMuted, centerX ] (text labelText)
-        , Input.checkbox []
-            { onChange = toMsg
-            , icon = Input.defaultCheckbox
-            , checked = isChecked
-            , label = Input.labelHidden labelText
-            }
+viewRecentData : Model -> Element Msg
+viewRecentData model =
+    column [ spacing 20, width fill ]
+        [ viewRecentSnapshots model.balanceSnapshots model.workLogs
+        , viewRecentWorkLogs model.workLogs model.jobs
         ]
 
-viewRecentEntries : List Entry -> Element Msg
-viewRecentEntries entries =
+viewRecentSnapshots : List BalanceSnapshot -> List WorkLog -> Element Msg
+viewRecentSnapshots snapshots workLogs =
     let
-        recent = List.take 25 (List.reverse entries)
+        recent = List.take 10 (List.reverse snapshots)
     in
     if List.isEmpty recent then
         none
     else
         column [ spacing 10, width fill ]
-            [ el [ Font.size 16, Font.light, Font.color colors.textMuted ] (text "Recent Entries")
-            , column [ spacing 8, width fill ] (List.map (viewRecentEntry entries) recent)
+            [ el [ Font.size 16, Font.light, Font.color colors.textMuted ] (text "Recent Balance Snapshots")
+            , column [ spacing 8, width fill ] (List.map (viewRecentSnapshot workLogs) recent)
             ]
 
-viewRecentEntry : List Entry -> Entry -> Element Msg
-viewRecentEntry allEntries entry =
+viewRecentSnapshot : List WorkLog -> BalanceSnapshot -> Element Msg
+viewRecentSnapshot workLogs snapshot =
     let
-        incomingPay = incomingPayForEntry entry allEntries
-        entryDays = dateToDays entry.date
-        weekday = dayOfWeekName entryDays
+        snapshotDays = dateToDays snapshot.date
+        weekday = dayOfWeekName snapshotDays
+        incomingPay = calculateIncomingPay snapshotDays workLogs
     in
     column
         [ Background.color colors.cardBg
@@ -795,35 +968,22 @@ viewRecentEntry allEntries entry =
             [ wrappedRow [ spacing 15, width fill ]
                 [ row [ spacing 5 ]
                     [ el [ Font.bold, Font.color (rgb 1 1 1) ] (text weekday)
-                    , el [ Font.color colors.textMuted ] (text entry.date)
+                    , el [ Font.color colors.textMuted ] (text snapshot.date)
                     ]
-                , text ("Chk: $" ++ formatAmount entry.checking)
-                , text ("Crd: $" ++ formatAmount entry.creditAvailable)
-                , if entry.hoursWorked > 0 then
-                    el [ Font.color colors.green ]
-                        (text (formatAmount entry.hoursWorked ++ "h @ $" ++ formatAmount entry.payPerHour))
-                  else
-                    none
-                , if entry.otherIncoming > 0 then
-                    el [ Font.color colors.green ] (text ("+$" ++ formatAmount entry.otherIncoming))
-                  else
-                    none
-                , if entry.payCashed then
-                    el [ Font.color colors.yellow ] (text "[Cashed]")
-                  else
-                    none
-                , if entry.note /= "" then
-                    el [ Font.color colors.textMuted, Font.italic ] (text entry.note)
+                , text ("Chk: $" ++ formatAmount snapshot.checking)
+                , text ("Crd: $" ++ formatAmount snapshot.creditAvailable)
+                , if snapshot.note /= "" then
+                    el [ Font.color colors.textMuted, Font.italic ] (text snapshot.note)
                   else
                     none
                 ]
             , row [ spacing 5 ]
                 [ Input.button [ Font.color colors.accent, Font.size 14 ]
-                    { onPress = Just (EditEntry entry)
+                    { onPress = Just (EditSnapshot snapshot)
                     , label = text "Edit"
                     }
                 , Input.button [ Font.color colors.red, Font.size 18 ]
-                    { onPress = Just (DeleteEntry entry.id)
+                    { onPress = Just (DeleteSnapshot snapshot.id)
                     , label = text "X"
                     }
                 ]
@@ -838,6 +998,58 @@ viewRecentEntry allEntries entry =
             [ el [ Font.color colors.textMuted ] (text "Incoming: ")
             , el [ Font.color colors.green, Font.medium ] (text ("$" ++ formatAmount incomingPay))
             ]
+        ]
+
+viewRecentWorkLogs : List WorkLog -> List Job -> Element Msg
+viewRecentWorkLogs workLogs jobs =
+    let
+        recent = List.take 15 (List.reverse workLogs)
+        getJobName jobId =
+            jobs
+                |> List.filter (\j -> j.id == jobId)
+                |> List.head
+                |> Maybe.map .name
+                |> Maybe.withDefault jobId
+    in
+    if List.isEmpty recent then
+        none
+    else
+        column [ spacing 10, width fill ]
+            [ el [ Font.size 16, Font.light, Font.color colors.textMuted ] (text "Recent Work Logs")
+            , column [ spacing 6, width fill ] (List.map (viewRecentWorkLog getJobName) recent)
+            ]
+
+viewRecentWorkLog : (String -> String) -> WorkLog -> Element Msg
+viewRecentWorkLog getJobName workLog =
+    let
+        logDays = dateToDays workLog.date
+        weekday = dayOfWeekName logDays
+    in
+    row
+        [ Background.color colors.cardBg
+        , Border.rounded 6
+        , padding 10
+        , width fill
+        , Font.size 13
+        , spacing 15
+        ]
+        [ row [ spacing 5 ]
+            [ el [ Font.bold, Font.color (rgb 1 1 1) ] (text weekday)
+            , el [ Font.color colors.textMuted ] (text workLog.date)
+            ]
+        , el [ Font.color colors.accent ] (text (getJobName workLog.jobId))
+        , el [ Font.color colors.green ]
+            (text (formatAmount workLog.hours ++ "h @ $" ++ formatAmount workLog.payRate))
+        , el [ Font.color colors.textMuted ]
+            (text ("Tax: " ++ String.fromInt (round (workLog.taxRate * 100)) ++ "%"))
+        , if workLog.payCashed then
+            el [ Font.color colors.yellow, Font.bold ] (text "$")
+          else
+            none
+        , Input.button [ Font.color colors.red, Font.size 18, alignRight ]
+            { onPress = Just (DeleteWorkLog workLog.id)
+            , label = text "X"
+            }
         ]
 
 

@@ -8,10 +8,8 @@ use std::fs;
 use std::path::Path;
 
 fn main() {
-    // Collect all the Elm type definitions
     let mut elm_code = String::new();
 
-    // Module header
     elm_code.push_str(
         r#"module Api.Types exposing (..)
 
@@ -28,11 +26,8 @@ import Json.Encode as Encode
 "#,
     );
 
-    // Helper to unwrap Option<String> from elm_rs and fix naming
     let add = |code: &mut String, opt: Option<String>| {
         if let Some(s) = opt {
-            // elm_rs generates Json.Decode.xxx and Json.Encode.xxx
-            // but our imports alias them to Decode and Encode
             let fixed = s
                 .replace("Json.Decode.", "Decode.")
                 .replace("Json.Encode.", "Encode.");
@@ -41,26 +36,45 @@ import Json.Encode as Encode
         }
     };
 
-    // Generate types and decoders for Entry
-    add(&mut elm_code, types::Entry::elm_definition());
-    add(&mut elm_code, types::Entry::decoder_definition());
-    add(&mut elm_code, types::Entry::encoder_definition());
+    // Job
+    add(&mut elm_code, types::Job::elm_definition());
+    add(&mut elm_code, types::Job::decoder_definition());
+    add(&mut elm_code, types::Job::encoder_definition());
 
-    // Generate types and decoders for NewEntry
-    add(&mut elm_code, types::NewEntry::elm_definition());
-    add(&mut elm_code, types::NewEntry::decoder_definition());
-    add(&mut elm_code, types::NewEntry::encoder_definition());
+    // WorkLog
+    add(&mut elm_code, types::WorkLog::elm_definition());
+    add(&mut elm_code, types::WorkLog::decoder_definition());
+    add(&mut elm_code, types::WorkLog::encoder_definition());
 
-    // Generate types and encoder for ApiResponse (no decoder needed)
+    // NewWorkLog
+    add(&mut elm_code, types::NewWorkLog::elm_definition());
+    add(&mut elm_code, types::NewWorkLog::decoder_definition());
+    add(&mut elm_code, types::NewWorkLog::encoder_definition());
+
+    // BalanceSnapshot
+    add(&mut elm_code, types::BalanceSnapshot::elm_definition());
+    add(&mut elm_code, types::BalanceSnapshot::decoder_definition());
+    add(&mut elm_code, types::BalanceSnapshot::encoder_definition());
+
+    // NewBalanceSnapshot
+    add(&mut elm_code, types::NewBalanceSnapshot::elm_definition());
+    add(&mut elm_code, types::NewBalanceSnapshot::decoder_definition());
+    add(&mut elm_code, types::NewBalanceSnapshot::encoder_definition());
+
+    // FinanceData
+    add(&mut elm_code, types::FinanceData::elm_definition());
+    add(&mut elm_code, types::FinanceData::decoder_definition());
+    add(&mut elm_code, types::FinanceData::encoder_definition());
+
+    // ApiResponse
     add(&mut elm_code, types::ApiResponse::elm_definition());
     add(&mut elm_code, types::ApiResponse::encoder_definition());
 
-    // Generate types and decoder for Weather
+    // Weather
     add(&mut elm_code, types::Weather::elm_definition());
     add(&mut elm_code, types::Weather::decoder_definition());
     add(&mut elm_code, types::Weather::encoder_definition());
 
-    // Write to frontend
     let output_dir = Path::new("../frontend/src/Api");
     fs::create_dir_all(output_dir).expect("Failed to create Api directory");
 

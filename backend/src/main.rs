@@ -10,97 +10,155 @@ use std::sync::{Arc, RwLock};
 use std::{fs, path::PathBuf};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
-use types::{ApiResponse, Entry, NewEntry, Weather};
+use types::{ApiResponse, BalanceSnapshot, FinanceData, Job, NewBalanceSnapshot, NewWorkLog, Weather, WorkLog};
 
 type AppState = Arc<RwLock<AppData>>;
 
 struct AppData {
-    entries: Vec<Entry>,
-    next_id: i32,
+    jobs: Vec<Job>,
+    work_logs: Vec<WorkLog>,
+    balance_snapshots: Vec<BalanceSnapshot>,
+    next_work_log_id: i32,
+    next_snapshot_id: i32,
     data_file: PathBuf,
 }
 
 impl AppData {
     fn load(data_file: PathBuf) -> Self {
-        let entries: Vec<Entry> = if data_file.exists() {
+        let (work_logs, balance_snapshots): (Vec<WorkLog>, Vec<BalanceSnapshot>) = if data_file.exists() {
             let content = fs::read_to_string(&data_file).unwrap_or_default();
-            serde_json::from_str(&content).unwrap_or_default()
+            if let Ok(data) = serde_json::from_str::<FinanceData>(&content) {
+                (data.work_logs, data.balance_snapshots)
+            } else {
+                (Vec::new(), Vec::new())
+            }
         } else {
-            Vec::new()
+            (Vec::new(), Vec::new())
         };
 
-        let next_id = entries.iter().map(|e| e.id).max().unwrap_or(0) + 1;
+        let next_work_log_id = work_logs.iter().map(|w| w.id).max().unwrap_or(0) + 1;
+        let next_snapshot_id = balance_snapshots.iter().map(|s| s.id).max().unwrap_or(0) + 1;
+
+        // Hardcoded jobs
+        let jobs = vec![
+            Job { id: "alborn".to_string(), name: "Alborn".to_string() },
+            Job { id: "museum".to_string(), name: "Museum".to_string() },
+        ];
 
         Self {
-            entries,
-            next_id,
+            jobs,
+            work_logs,
+            balance_snapshots,
+            next_work_log_id,
+            next_snapshot_id,
             data_file,
         }
     }
 
     fn save(&self) {
-        let content = serde_json::to_string_pretty(&self.entries).unwrap();
+        let data = FinanceData {
+            jobs: self.jobs.clone(),
+            work_logs: self.work_logs.clone(),
+            balance_snapshots: self.balance_snapshots.clone(),
+        };
+        let content = serde_json::to_string_pretty(&data).unwrap();
         fs::write(&self.data_file, content).ok();
     }
 }
 
-async fn get_entries(State(state): State<AppState>) -> Json<Vec<Entry>> {
+async fn get_data(State(state): State<AppState>) -> Json<FinanceData> {
     let data = state.read().unwrap();
-    Json(data.entries.clone())
+    Json(FinanceData {
+        jobs: data.jobs.clone(),
+        work_logs: data.work_logs.clone(),
+        balance_snapshots: data.balance_snapshots.clone(),
+    })
 }
 
-async fn create_entry(
+async fn create_work_log(
     State(state): State<AppState>,
-    Json(new_entry): Json<NewEntry>,
+    Json(new_log): Json<NewWorkLog>,
 ) -> (StatusCode, Json<ApiResponse>) {
     let mut data = state.write().unwrap();
 
-    // Check if entry for this date already exists - if so, overwrite it
-    if let Some(existing) = data.entries.iter_mut().find(|e| e.date == new_entry.date) {
-        existing.checking = new_entry.checking;
-        existing.credit_available = new_entry.credit_available;
-        existing.credit_limit = new_entry.credit_limit;
-        existing.hours_worked = new_entry.hours_worked;
-        existing.pay_per_hour = new_entry.pay_per_hour;
-        existing.other_incoming = new_entry.other_incoming;
-        existing.personal_debt = new_entry.personal_debt;
-        existing.note = new_entry.note;
-        existing.pay_cashed = new_entry.pay_cashed;
-    } else {
-        // Create new entry
-        let entry = Entry {
-            id: data.next_id,
-            date: new_entry.date,
-            checking: new_entry.checking,
-            credit_available: new_entry.credit_available,
-            credit_limit: new_entry.credit_limit,
-            hours_worked: new_entry.hours_worked,
-            pay_per_hour: new_entry.pay_per_hour,
-            other_incoming: new_entry.other_incoming,
-            personal_debt: new_entry.personal_debt,
-            note: new_entry.note,
-            pay_cashed: new_entry.pay_cashed,
-        };
+    let log = WorkLog {
+        id: data.next_work_log_id,
+        date: new_log.date,
+        job_id: new_log.job_id,
+        hours: new_log.hours,
+        pay_rate: new_log.pay_rate,
+        tax_rate: new_log.tax_rate,
+        pay_cashed: new_log.pay_cashed,
+    };
 
-        data.next_id += 1;
-        data.entries.push(entry);
-        data.entries.sort_by(|a, b| a.date.cmp(&b.date));
+    data.next_work_log_id += 1;
+    data.work_logs.push(log);
+    data.work_logs.sort_by(|a, b| a.date.cmp(&b.date));
+
+    data.save();
+    (StatusCode::OK, Json(ApiResponse { ok: true }))
+}
+
+async fn delete_work_log(
+    State(state): State<AppState>,
+    Path(id): Path<i32>,
+) -> (StatusCode, Json<ApiResponse>) {
+    let mut data = state.write().unwrap();
+
+    let original_len = data.work_logs.len();
+    data.work_logs.retain(|w| w.id != id);
+
+    if data.work_logs.len() == original_len {
+        return (StatusCode::NOT_FOUND, Json(ApiResponse { ok: false }));
     }
 
     data.save();
     (StatusCode::OK, Json(ApiResponse { ok: true }))
 }
 
-async fn delete_entry(
+async fn create_balance_snapshot(
+    State(state): State<AppState>,
+    Json(new_snapshot): Json<NewBalanceSnapshot>,
+) -> (StatusCode, Json<ApiResponse>) {
+    let mut data = state.write().unwrap();
+
+    // Check if snapshot for this date already exists - if so, overwrite it
+    if let Some(existing) = data.balance_snapshots.iter_mut().find(|s| s.date == new_snapshot.date) {
+        existing.checking = new_snapshot.checking;
+        existing.credit_available = new_snapshot.credit_available;
+        existing.credit_limit = new_snapshot.credit_limit;
+        existing.personal_debt = new_snapshot.personal_debt;
+        existing.note = new_snapshot.note;
+    } else {
+        let snapshot = BalanceSnapshot {
+            id: data.next_snapshot_id,
+            date: new_snapshot.date,
+            checking: new_snapshot.checking,
+            credit_available: new_snapshot.credit_available,
+            credit_limit: new_snapshot.credit_limit,
+            personal_debt: new_snapshot.personal_debt,
+            note: new_snapshot.note,
+        };
+
+        data.next_snapshot_id += 1;
+        data.balance_snapshots.push(snapshot);
+        data.balance_snapshots.sort_by(|a, b| a.date.cmp(&b.date));
+    }
+
+    data.save();
+    (StatusCode::OK, Json(ApiResponse { ok: true }))
+}
+
+async fn delete_balance_snapshot(
     State(state): State<AppState>,
     Path(id): Path<i32>,
 ) -> (StatusCode, Json<ApiResponse>) {
     let mut data = state.write().unwrap();
 
-    let original_len = data.entries.len();
-    data.entries.retain(|e| e.id != id);
+    let original_len = data.balance_snapshots.len();
+    data.balance_snapshots.retain(|s| s.id != id);
 
-    if data.entries.len() == original_len {
+    if data.balance_snapshots.len() == original_len {
         return (StatusCode::NOT_FOUND, Json(ApiResponse { ok: false }));
     }
 
@@ -109,12 +167,9 @@ async fn delete_entry(
 }
 
 async fn get_weather() -> (StatusCode, Json<Weather>) {
-    // Anchorage, Alaska coordinates
     let lat = 61.2181;
     let lon = -149.9003;
 
-    // Open-Meteo API - free, no API key needed
-    // current_weather gives us the current temperature
     let url = format!(
         "https://api.open-meteo.com/v1/forecast?latitude={}&longitude={}&daily=temperature_2m_max,temperature_2m_min&current_weather=true&temperature_unit=fahrenheit&timezone=America/Anchorage&forecast_days=1",
         lat, lon
@@ -130,7 +185,6 @@ async fn get_weather() -> (StatusCode, Json<Weather>) {
         Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(Weather { current_f: 0, high_f: 0, low_f: 0 })),
     };
 
-    // Extract current, high, and low from the response
     let current = json["current_weather"]["temperature"].as_f64().unwrap_or(0.0) as i32;
     let high = json["daily"]["temperature_2m_max"][0].as_f64().unwrap_or(0.0) as i32;
     let low = json["daily"]["temperature_2m_min"][0].as_f64().unwrap_or(0.0) as i32;
@@ -145,20 +199,18 @@ async fn main() {
         .and_then(|p| p.parse().ok())
         .unwrap_or(3000);
 
-    // Data file location - same directory as server for simplicity
     let data_file = PathBuf::from("data.json");
 
     let state: AppState = Arc::new(RwLock::new(AppData::load(data_file)));
 
-    // API routes
     let api_routes = Router::new()
-        .route("/data", get(get_entries))
-        .route("/entry", post(create_entry))
-        .route("/entry/:id", delete(delete_entry))
+        .route("/data", get(get_data))
+        .route("/worklog", post(create_work_log))
+        .route("/worklog/:id", delete(delete_work_log))
+        .route("/balance", post(create_balance_snapshot))
+        .route("/balance/:id", delete(delete_balance_snapshot))
         .route("/weather", get(get_weather));
 
-    // Main app: API + static files (with SPA fallback to index.html)
-    // Add Cache-Control: no-cache to prevent browser from caching stale JS
     let serve_dir = ServeDir::new("dist")
         .append_index_html_on_directories(true)
         .not_found_service(ServeFile::new("dist/index.html"));
