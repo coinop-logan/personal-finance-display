@@ -59,6 +59,12 @@ dist/                 # Built frontend files (committed for Pi deployment)
 
 4. Import and use in `frontend/src/Main.elm`
 
+## Raspberry Pi
+
+- **IP Address:** 216.152.181.254
+- **Username:** pi
+- **SSH:** `ssh -i ~/.ssh/pi_finance -p 2222 pi@216.152.181.254` (when enabled)
+
 ## Deployment
 
 The Pi pulls from this repo and runs the server. The deploy watcher checks for updates every 2 seconds and restarts the server automatically.
