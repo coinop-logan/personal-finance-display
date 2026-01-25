@@ -56,6 +56,15 @@ noteColorFromString str =
         "yellow" -> Yellow
         _ -> NoColor
 
+cycleNoteColor : NoteColor -> NoteColor
+cycleNoteColor color =
+    case color of
+        NoColor -> Green
+        Green -> Blue
+        Blue -> Red
+        Red -> Yellow
+        Yellow -> NoColor
+
 encodeNoteWithColor : NoteColor -> String -> String
 encodeNoteWithColor color noteText =
     case color of
@@ -230,7 +239,7 @@ type Msg
     | UpdateBalanceCreditLimit String
     | UpdateBalancePersonalDebt String
     | UpdateBalanceNote String
-    | UpdateBalanceNoteColor NoteColor
+    | CycleBalanceNoteColor
     | AdjustBalanceDate Int
     | SubmitBalance
     | SubmitBalanceResult (Result Http.Error ())
@@ -332,9 +341,9 @@ update msg model =
             let f = model.balanceForm in
             ( { model | balanceForm = { f | note = val } }, Cmd.none )
 
-        UpdateBalanceNoteColor color ->
+        CycleBalanceNoteColor ->
             let f = model.balanceForm in
-            ( { model | balanceForm = { f | noteColor = color } }, Cmd.none )
+            ( { model | balanceForm = { f | noteColor = cycleNoteColor f.noteColor } }, Cmd.none )
 
         AdjustBalanceDate delta ->
             let f = model.balanceForm in
@@ -833,33 +842,36 @@ viewNoteWithColor noteVal noteColor =
                 , placeholder = Nothing
                 , label = Input.labelHidden "Note"
                 }
-            , Input.radioRow
-                [ spacing 4 ]
-                { onChange = UpdateBalanceNoteColor
-                , selected = Just noteColor
-                , label = Input.labelHidden "Color"
-                , options =
-                    [ Input.option NoColor (colorDot colors.textMuted "—")
-                    , Input.option Green (colorDot (rgb255 74 222 128) "")
-                    , Input.option Blue (colorDot (rgb255 96 165 250) "")
-                    , Input.option Red (colorDot (rgb255 248 113 113) "")
-                    , Input.option Yellow (colorDot (rgb255 251 191 36) "")
-                    ]
-                }
+            , if String.isEmpty noteVal then
+                none
+              else
+                Input.button []
+                    { onPress = Just CycleBalanceNoteColor
+                    , label = colorDot (noteColorToColor noteColor)
+                    }
             ]
         ]
 
-colorDot : Color -> String -> Element msg
-colorDot color label =
+noteColorToColor : NoteColor -> Color
+noteColorToColor color =
+    case color of
+        NoColor -> colors.textMuted
+        Green -> rgb255 74 222 128
+        Blue -> rgb255 96 165 250
+        Red -> rgb255 248 113 113
+        Yellow -> rgb255 251 191 36
+
+colorDot : Color -> Element msg
+colorDot color =
     el
         [ Background.color color
-        , width (px 16)
-        , height (px 16)
-        , Border.rounded 8
+        , width (px 20)
+        , height (px 20)
+        , Border.rounded 10
         , Border.width 1
         , Border.color colors.border
         ]
-        (if label == "" then none else el [ centerX, centerY, Font.size 10 ] (text label))
+        none
 
 
 viewCompactField : String -> String -> (String -> Msg) -> Int -> Element Msg
