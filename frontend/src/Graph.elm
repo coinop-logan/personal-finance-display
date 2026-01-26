@@ -6,7 +6,7 @@ import Element exposing (Element, html, el, text, row, column, inFront, alignRig
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
-import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline, circle)
+import Svg exposing (Svg, svg, rect, line, text_, g, polygon, polyline, circle, defs, clipPath)
 import Svg.Attributes as SA
 import Time
 
@@ -466,6 +466,21 @@ drawXAxis yMinK endDay =
                         ]
                 )
 
+        -- Final tick at the right edge of the last day
+        finalTick =
+            let
+                x = dayToX endDay (endDay + 1)
+            in
+            line
+                [ SA.x1 (String.fromFloat x)
+                , SA.y1 (String.fromFloat y0)
+                , SA.x2 (String.fromFloat x)
+                , SA.y2 (String.fromFloat (y0 + 8))
+                , SA.stroke colorAxis
+                , SA.strokeWidth "2"
+                ]
+                []
+
         -- Week sections
         weekRowY = y0 + 42
         weekRowHeight = 16
@@ -564,7 +579,7 @@ drawXAxis yMinK endDay =
                         ]
                 )
     in
-    g [] (axisLine :: dayTicks ++ weekSections ++ monthSections ++ yearSections)
+    g [] (axisLine :: dayTicks ++ [ finalTick ] ++ weekSections ++ monthSections ++ yearSections)
 
 
 -- Helper to get Sunday of a week containing a given day
@@ -837,8 +852,8 @@ formatMilitaryTime zone time =
 viewGraph : List BalanceSnapshot -> List WorkLog -> Time.Posix -> Maybe Weather -> Element msg
 viewGraph snapshots workLogs currentTime maybeWeather =
     let
-        -- Calculate today's day number from currentTime
-        endDay = posixToDays currentTime
+        -- Calculate end day as 3 days after current date
+        endDay = posixToDays currentTime + 3
 
         dayData = buildDayData snapshots workLogs
 
@@ -982,6 +997,20 @@ viewGraph snapshots workLogs currentTime maybeWeather =
                     ]
                 )
 
+        -- Define clip path for plot area
+        plotClipPath =
+            defs []
+                [ clipPath [ SA.id "plotClip" ]
+                    [ rect
+                        [ SA.x (String.fromFloat marginLeft)
+                        , SA.y (String.fromFloat marginTop)
+                        , SA.width (String.fromFloat plotWidth)
+                        , SA.height (String.fromFloat plotHeight)
+                        ]
+                        []
+                    ]
+                ]
+
         svgGraph =
             html <|
                 svg
@@ -998,16 +1027,19 @@ viewGraph snapshots workLogs currentTime maybeWeather =
                         , SA.fill colorBackground
                         ]
                         []
-                    , drawGridLines yMinK endDay
-                    , checkingPolygon
-                    , creditPolygon
-                    , dailyPaySegments
-                    , earnedLine
-                    , debtLine
+                    , plotClipPath
+                    , g [ SA.clipPath "url(#plotClip)" ]
+                        [ drawGridLines yMinK endDay
+                        , checkingPolygon
+                        , creditPolygon
+                        , dailyPaySegments
+                        , earnedLine
+                        , debtLine
+                        , drawNotes yMinK endDay dayData
+                        ]
                     , drawYAxis yMinK
                     , drawXAxis yMinK endDay
                     , endLabels
-                    , drawNotes yMinK endDay dayData
                     ]
     in
     el [ inFront clockOverlay ] svgGraph

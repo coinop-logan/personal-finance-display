@@ -17256,6 +17256,8 @@ var $author$project$Main$viewEntryPage = function (model) {
 var $author$project$Graph$alaskaZone = A2($elm$time$Time$customZone, (-9) * 60, _List_Nil);
 var $mdgriffith$elm_ui$Internal$Model$Top = 0;
 var $mdgriffith$elm_ui$Element$alignTop = $mdgriffith$elm_ui$Internal$Model$AlignY(0);
+var $elm$svg$Svg$clipPath = $elm$svg$Svg$trustedNode('clipPath');
+var $elm$svg$Svg$Attributes$clipPath = _VirtualDom_attribute('clip-path');
 var $author$project$Graph$marginLeft = 60;
 var $author$project$Graph$graphWidth = 1920;
 var $author$project$Graph$marginRight = 100;
@@ -17267,6 +17269,7 @@ var $author$project$Graph$dayToX = F2(
 		var dayOffset = day - $author$project$Graph$startDate;
 		return $author$project$Graph$marginLeft + ((dayOffset / totalDaysFloat) * $author$project$Graph$plotWidth);
 	});
+var $elm$svg$Svg$defs = $elm$svg$Svg$trustedNode('defs');
 var $elm$svg$Svg$Attributes$dominantBaseline = _VirtualDom_attribute('dominant-baseline');
 var $author$project$Graph$colorOrange = '#f97316';
 var $author$project$Graph$marginTop = 30;
@@ -18073,6 +18076,25 @@ var $author$project$Graph$drawXAxis = F2(
 							]));
 				}),
 			years);
+		var finalTick = function () {
+			var x = A2($author$project$Graph$dayToX, endDay, endDay + 1);
+			return A2(
+				$elm$svg$Svg$line,
+				_List_fromArray(
+					[
+						$elm$svg$Svg$Attributes$x1(
+						$elm$core$String$fromFloat(x)),
+						$elm$svg$Svg$Attributes$y1(
+						$elm$core$String$fromFloat(y0)),
+						$elm$svg$Svg$Attributes$x2(
+						$elm$core$String$fromFloat(x)),
+						$elm$svg$Svg$Attributes$y2(
+						$elm$core$String$fromFloat(y0 + 8)),
+						$elm$svg$Svg$Attributes$stroke($author$project$Graph$colorAxis),
+						$elm$svg$Svg$Attributes$strokeWidth('2')
+					]),
+				_List_Nil);
+		}();
 		var dayTicks = A2(
 			$elm$core$List$map,
 			function (day) {
@@ -18160,8 +18182,11 @@ var $author$project$Graph$drawXAxis = F2(
 				_Utils_ap(
 					dayTicks,
 					_Utils_ap(
-						weekSections,
-						_Utils_ap(monthSections, yearSections)))));
+						_List_fromArray(
+							[finalTick]),
+						_Utils_ap(
+							weekSections,
+							_Utils_ap(monthSections, yearSections))))));
 	});
 var $elm$core$Basics$abs = function (n) {
 	return (n < 0) ? (-n) : n;
@@ -18331,6 +18356,7 @@ var $author$project$Graph$formatMilitaryTime = F2(
 		var hour = A2($elm$time$Time$toHour, zone, time);
 		return pad(hour) + (':' + (pad(minute) + (':' + pad(second))));
 	});
+var $elm$svg$Svg$Attributes$id = _VirtualDom_attribute('id');
 var $mdgriffith$elm_ui$Internal$Model$Monospace = {$: 2};
 var $mdgriffith$elm_ui$Element$Font$monospace = $mdgriffith$elm_ui$Internal$Model$Monospace;
 var $author$project$Graph$monthToInt = function (month) {
@@ -18457,7 +18483,36 @@ var $author$project$Graph$viewGraph = F4(
 			}
 		}();
 		var timeStr = A2($author$project$Graph$formatMilitaryTime, $author$project$Graph$alaskaZone, currentTime);
-		var endDay = $author$project$Graph$posixToDays(currentTime);
+		var plotClipPath = A2(
+			$elm$svg$Svg$defs,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					$elm$svg$Svg$clipPath,
+					_List_fromArray(
+						[
+							$elm$svg$Svg$Attributes$id('plotClip')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$svg$Svg$rect,
+							_List_fromArray(
+								[
+									$elm$svg$Svg$Attributes$x(
+									$elm$core$String$fromFloat($author$project$Graph$marginLeft)),
+									$elm$svg$Svg$Attributes$y(
+									$elm$core$String$fromFloat($author$project$Graph$marginTop)),
+									$elm$svg$Svg$Attributes$width(
+									$elm$core$String$fromFloat($author$project$Graph$plotWidth)),
+									$elm$svg$Svg$Attributes$height(
+									$elm$core$String$fromFloat($author$project$Graph$plotHeight))
+								]),
+							_List_Nil)
+						]))
+				]));
+		var endDay = $author$project$Graph$posixToDays(currentTime) + 3;
 		var dayData = A2($author$project$Graph$buildDayData, snapshots, workLogs);
 		var debtValues = A2(
 			$elm$core$List$map,
@@ -18680,16 +18735,26 @@ var $author$project$Graph$viewGraph = F4(
 								$elm$svg$Svg$Attributes$fill($author$project$Graph$colorBackground)
 							]),
 						_List_Nil),
-						A2($author$project$Graph$drawGridLines, yMinK, endDay),
-						checkingPolygon,
-						creditPolygon,
-						dailyPaySegments,
-						earnedLine,
-						debtLine,
+						plotClipPath,
+						A2(
+						$elm$svg$Svg$g,
+						_List_fromArray(
+							[
+								$elm$svg$Svg$Attributes$clipPath('url(#plotClip)')
+							]),
+						_List_fromArray(
+							[
+								A2($author$project$Graph$drawGridLines, yMinK, endDay),
+								checkingPolygon,
+								creditPolygon,
+								dailyPaySegments,
+								earnedLine,
+								debtLine,
+								A3($author$project$Graph$drawNotes, yMinK, endDay, dayData)
+							])),
 						$author$project$Graph$drawYAxis(yMinK),
 						A2($author$project$Graph$drawXAxis, yMinK, endDay),
-						endLabels,
-						A3($author$project$Graph$drawNotes, yMinK, endDay, dayData)
+						endLabels
 					])));
 		return A2(
 			$mdgriffith$elm_ui$Element$el,
