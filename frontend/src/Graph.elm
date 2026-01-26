@@ -27,7 +27,7 @@ marginTop : Float
 marginTop = 30
 
 marginBottom : Float
-marginBottom = 50
+marginBottom = 100
 
 plotWidth : Float
 plotWidth = graphWidth - marginLeft - marginRight
@@ -36,13 +36,7 @@ plotHeight : Float
 plotHeight = graphHeight - marginTop - marginBottom
 
 startDate : Int
-startDate = dateToDays "2025-12-29"
-
-endDate : Int
-endDate = dateToDays "2026-01-31"
-
-totalDays : Int
-totalDays = endDate - startDate
+startDate = dateToDays "2026-01-04"
 
 yMax : Float
 yMax = 20.0
@@ -158,9 +152,10 @@ buildDayData snapshots workLogs =
         |> List.map (\( day, snapshot ) -> buildForDay day snapshot)
 
 
-dayToX : Float -> Int -> Float
-dayToX yMinK day =
+dayToX : Int -> Int -> Float
+dayToX endDay day =
     let
+        totalDays = endDay - startDate
         dayOffset = toFloat (day - startDate)
         totalDaysFloat = toFloat totalDays
     in
@@ -193,19 +188,19 @@ formatK valueK =
     sign ++ "$" ++ String.fromInt intPart ++ decStr ++ "k"
 
 
-dayLabel : Int -> String
-dayLabel day =
+dayLabelParts : Int -> { weekday : String, dayNum : String }
+dayLabelParts day =
     let
         weekday = modBy 7 (day + 6)
-        weekdayLetter =
+        weekdayStr =
             case weekday of
-                0 -> "S"
-                1 -> "M"
-                2 -> "T"
-                3 -> "W"
-                4 -> "T"
-                5 -> "F"
-                _ -> "S"
+                0 -> "Sun"
+                1 -> "Mon"
+                2 -> "Tue"
+                3 -> "Wed"
+                4 -> "Thu"
+                5 -> "Fri"
+                _ -> "Sat"
 
         dateStr = Calculations.daysToDateString day
         dayNum =
@@ -215,11 +210,11 @@ dayLabel day =
                 |> Maybe.andThen String.toInt
                 |> Maybe.withDefault 0
     in
-    weekdayLetter ++ String.fromInt dayNum
+    { weekday = weekdayStr, dayNum = String.fromInt dayNum }
 
 
-drawStepPolygon : Float -> Float -> List ( Int, Float ) -> String -> Svg msg
-drawStepPolygon yMinK baseline dayValues color =
+drawStepPolygon : Float -> Int -> Float -> List ( Int, Float ) -> String -> Svg msg
+drawStepPolygon yMinK endDay baseline dayValues color =
     if List.isEmpty dayValues then
         g [] []
     else
@@ -232,8 +227,8 @@ drawStepPolygon yMinK baseline dayValues color =
                     [] -> []
                     ( day, val ) :: rest ->
                         let
-                            x1 = dayToX yMinK day
-                            x2 = dayToX yMinK (day + 1)
+                            x1 = dayToX endDay day
+                            x2 = dayToX endDay (day + 1)
                             y = valueToY yMinK val
 
                             gapPoints =
@@ -259,8 +254,8 @@ drawStepPolygon yMinK baseline dayValues color =
             firstDay = List.head dayValues |> Maybe.map Tuple.first |> Maybe.withDefault startDate
             lastDay = List.reverse dayValues |> List.head |> Maybe.map Tuple.first |> Maybe.withDefault startDate
 
-            startX = dayToX yMinK firstDay
-            endX = dayToX yMinK (lastDay + 1)
+            startX = dayToX endDay firstDay
+            endX = dayToX endDay (lastDay + 1)
 
             pointsStr =
                 [ String.fromFloat startX ++ "," ++ String.fromFloat y0 ]
@@ -276,8 +271,8 @@ drawStepPolygon yMinK baseline dayValues color =
             []
 
 
-drawStepLine : Float -> List ( Int, Float ) -> String -> Svg msg
-drawStepLine yMinK dayValues color =
+drawStepLine : Float -> Int -> List ( Int, Float ) -> String -> Svg msg
+drawStepLine yMinK endDay dayValues color =
     if List.isEmpty dayValues then
         g [] []
     else
@@ -288,8 +283,8 @@ drawStepLine yMinK dayValues color =
                     [] -> []
                     ( day, val ) :: rest ->
                         let
-                            x1 = dayToX yMinK day
-                            x2 = dayToX yMinK (day + 1)
+                            x1 = dayToX endDay day
+                            x2 = dayToX endDay (day + 1)
                             y = valueToY yMinK val
 
                             gapPoints =
@@ -323,8 +318,8 @@ drawStepLine yMinK dayValues color =
             []
 
 
-drawDailyPaySegments : Float -> List DayData -> Svg msg
-drawDailyPaySegments yMinK dayDataList =
+drawDailyPaySegments : Float -> Int -> List DayData -> Svg msg
+drawDailyPaySegments yMinK endDay dayDataList =
     let
         buildSegments : Maybe DayData -> List DayData -> List (Svg msg)
         buildSegments prevMaybe remaining =
@@ -345,7 +340,7 @@ drawDailyPaySegments yMinK dayDataList =
                         segment =
                             if current.dailyPayEarned > 0 then
                                 let
-                                    x = dayToX yMinK current.day
+                                    x = dayToX endDay current.day
                                     yBottom = valueToY yMinK prevEarned
                                     yTop = valueToY yMinK (prevEarned + current.dailyPayEarned)
                                     rectWidth = 5
@@ -368,8 +363,8 @@ drawDailyPaySegments yMinK dayDataList =
     g [] (buildSegments Nothing dayDataList)
 
 
-drawNotes : Float -> List DayData -> Svg msg
-drawNotes yMinK dayDataList =
+drawNotes : Float -> Int -> List DayData -> Svg msg
+drawNotes yMinK endDay dayDataList =
     let
         noteColors : NoteColor -> { dot : String, text : String }
         noteColors color =
@@ -388,7 +383,7 @@ drawNotes yMinK dayDataList =
                     let
                         colors = noteColors noteInfo.color
 
-                        x = dayToX yMinK dayData.day + (dayToX yMinK (dayData.day + 1) - dayToX yMinK dayData.day) / 2
+                        x = dayToX endDay dayData.day + (dayToX endDay (dayData.day + 1) - dayToX endDay dayData.day) / 2
 
                         dotY = valueToY yMinK (dayData.earnedMoney + 0.5)
                         dotRadius = 4
@@ -418,8 +413,8 @@ drawNotes yMinK dayDataList =
     g [] (List.concatMap drawNote dayDataList)
 
 
-drawXAxis : Float -> Svg msg
-drawXAxis yMinK =
+drawXAxis : Float -> Int -> Svg msg
+drawXAxis yMinK endDay =
     let
         y0 = valueToY yMinK 0
 
@@ -435,10 +430,12 @@ drawXAxis yMinK =
                 []
 
         dayTicks =
-            List.range startDate endDate
+            List.range startDate endDay
                 |> List.map (\day ->
                     let
-                        x = dayToX yMinK day
+                        x = dayToX endDay day
+                        labelParts = dayLabelParts day
+                        centerX = x + (dayToX endDay (day + 1) - x) / 2
                     in
                     g []
                         [ line
@@ -451,17 +448,246 @@ drawXAxis yMinK =
                             ]
                             []
                         , text_
-                            [ SA.x (String.fromFloat (x + (dayToX yMinK (day + 1) - x) / 2))
-                            , SA.y (String.fromFloat (y0 + 28))
+                            [ SA.x (String.fromFloat centerX)
+                            , SA.y (String.fromFloat (y0 + 20))
                             , SA.fill colorText
-                            , SA.fontSize "16"
+                            , SA.fontSize "12"
                             , SA.textAnchor "middle"
                             ]
-                            [ Svg.text (dayLabel day) ]
+                            [ Svg.text labelParts.weekday ]
+                        , text_
+                            [ SA.x (String.fromFloat centerX)
+                            , SA.y (String.fromFloat (y0 + 34))
+                            , SA.fill colorText
+                            , SA.fontSize "12"
+                            , SA.textAnchor "middle"
+                            ]
+                            [ Svg.text labelParts.dayNum ]
+                        ]
+                )
+
+        -- Week sections
+        weekRowY = y0 + 42
+        weekRowHeight = 16
+        weeks = getWeekRanges startDate endDay
+        weekSections =
+            weeks
+                |> List.indexedMap (\i ( weekStart, weekEnd ) ->
+                    let
+                        x1 = dayToX endDay (max weekStart startDate)
+                        x2 = dayToX endDay (min (weekEnd + 1) (endDay + 1))
+                        bgColor = if modBy 2 i == 0 then "rgba(0,0,0,0.1)" else "rgba(0,0,0,0.2)"
+                        weekLabel = "week of " ++ formatShortDate weekStart
+                    in
+                    g []
+                        [ rect
+                            [ SA.x (String.fromFloat x1)
+                            , SA.y (String.fromFloat weekRowY)
+                            , SA.width (String.fromFloat (x2 - x1))
+                            , SA.height (String.fromFloat weekRowHeight)
+                            , SA.fill bgColor
+                            ]
+                            []
+                        , text_
+                            [ SA.x (String.fromFloat ((x1 + x2) / 2))
+                            , SA.y (String.fromFloat (weekRowY + 12))
+                            , SA.fill colorText
+                            , SA.fontSize "10"
+                            , SA.textAnchor "middle"
+                            ]
+                            [ Svg.text weekLabel ]
+                        ]
+                )
+
+        -- Month sections
+        monthRowY = weekRowY + weekRowHeight
+        monthRowHeight = 16
+        months = getMonthRanges startDate endDay
+        monthSections =
+            months
+                |> List.indexedMap (\i ( monthStart, monthEnd, monthName ) ->
+                    let
+                        x1 = dayToX endDay (max monthStart startDate)
+                        x2 = dayToX endDay (min (monthEnd + 1) (endDay + 1))
+                        bgColor = if modBy 2 i == 0 then "rgba(0,0,0,0.15)" else "rgba(0,0,0,0.25)"
+                    in
+                    g []
+                        [ rect
+                            [ SA.x (String.fromFloat x1)
+                            , SA.y (String.fromFloat monthRowY)
+                            , SA.width (String.fromFloat (x2 - x1))
+                            , SA.height (String.fromFloat monthRowHeight)
+                            , SA.fill bgColor
+                            ]
+                            []
+                        , text_
+                            [ SA.x (String.fromFloat ((x1 + x2) / 2))
+                            , SA.y (String.fromFloat (monthRowY + 12))
+                            , SA.fill colorText
+                            , SA.fontSize "11"
+                            , SA.textAnchor "middle"
+                            ]
+                            [ Svg.text monthName ]
+                        ]
+                )
+
+        -- Year sections
+        yearRowY = monthRowY + monthRowHeight
+        yearRowHeight = 16
+        years = getYearRanges startDate endDay
+        yearSections =
+            years
+                |> List.indexedMap (\i ( yearStart, yearEnd, yearNum ) ->
+                    let
+                        x1 = dayToX endDay (max yearStart startDate)
+                        x2 = dayToX endDay (min (yearEnd + 1) (endDay + 1))
+                        bgColor = if modBy 2 i == 0 then "rgba(0,0,0,0.2)" else "rgba(0,0,0,0.3)"
+                    in
+                    g []
+                        [ rect
+                            [ SA.x (String.fromFloat x1)
+                            , SA.y (String.fromFloat yearRowY)
+                            , SA.width (String.fromFloat (x2 - x1))
+                            , SA.height (String.fromFloat yearRowHeight)
+                            , SA.fill bgColor
+                            ]
+                            []
+                        , text_
+                            [ SA.x (String.fromFloat ((x1 + x2) / 2))
+                            , SA.y (String.fromFloat (yearRowY + 12))
+                            , SA.fill colorText
+                            , SA.fontSize "11"
+                            , SA.textAnchor "middle"
+                            , SA.fontWeight "bold"
+                            ]
+                            [ Svg.text (String.fromInt yearNum) ]
                         ]
                 )
     in
-    g [] (axisLine :: dayTicks)
+    g [] (axisLine :: dayTicks ++ weekSections ++ monthSections ++ yearSections)
+
+
+-- Helper to get Sunday of a week containing a given day
+sundayOfWeek : Int -> Int
+sundayOfWeek day =
+    let
+        -- day 0 (2000-01-01) was Saturday
+        -- So: 0=Sat, 1=Sun, 2=Mon, ...
+        dayOfWeek = modBy 7 day
+    in
+    if dayOfWeek == 0 then
+        day - 6  -- Saturday: go back to previous Sunday
+    else
+        day - (dayOfWeek - 1)  -- Otherwise subtract to get to Sunday
+
+
+-- Get list of (weekStart, weekEnd) tuples covering the date range
+getWeekRanges : Int -> Int -> List ( Int, Int )
+getWeekRanges rangeStart rangeEnd =
+    let
+        firstSunday = sundayOfWeek rangeStart
+
+        buildWeeks sunday acc =
+            if sunday > rangeEnd then
+                List.reverse acc
+            else
+                let
+                    weekEnd = sunday + 6
+                in
+                buildWeeks (sunday + 7) (( sunday, weekEnd ) :: acc)
+    in
+    buildWeeks firstSunday []
+
+
+-- Format date as "M/D" (e.g., "1/5" for January 5)
+formatShortDate : Int -> String
+formatShortDate day =
+    let
+        dateStr = Calculations.daysToDateString day
+        parts = String.split "-" dateStr
+        month = parts |> List.drop 1 |> List.head |> Maybe.andThen String.toInt |> Maybe.withDefault 1
+        dayNum = parts |> List.drop 2 |> List.head |> Maybe.andThen String.toInt |> Maybe.withDefault 1
+    in
+    String.fromInt month ++ "/" ++ String.fromInt dayNum
+
+
+-- Get list of (monthStart, monthEnd, monthName) tuples covering the date range
+getMonthRanges : Int -> Int -> List ( Int, Int, String )
+getMonthRanges rangeStart rangeEnd =
+    let
+        -- Parse year/month from a day
+        getYearMonth day =
+            let
+                dateStr = Calculations.daysToDateString day
+                parts = String.split "-" dateStr
+                year = parts |> List.head |> Maybe.andThen String.toInt |> Maybe.withDefault 2026
+                month = parts |> List.drop 1 |> List.head |> Maybe.andThen String.toInt |> Maybe.withDefault 1
+            in
+            ( year, month )
+
+        monthName m =
+            case m of
+                1 -> "January"
+                2 -> "February"
+                3 -> "March"
+                4 -> "April"
+                5 -> "May"
+                6 -> "June"
+                7 -> "July"
+                8 -> "August"
+                9 -> "September"
+                10 -> "October"
+                11 -> "November"
+                12 -> "December"
+                _ -> ""
+
+        -- Get first day of a month
+        firstDayOfMonth year month =
+            dateToDays (String.fromInt year ++ "-" ++ String.padLeft 2 '0' (String.fromInt month) ++ "-01")
+
+        -- Build month ranges
+        buildMonths currentDay acc =
+            if currentDay > rangeEnd then
+                List.reverse acc
+            else
+                let
+                    ( year, month ) = getYearMonth currentDay
+                    monthStart = firstDayOfMonth year month
+                    nextMonth = if month == 12 then 1 else month + 1
+                    nextYear = if month == 12 then year + 1 else year
+                    monthEnd = firstDayOfMonth nextYear nextMonth - 1
+                in
+                buildMonths (monthEnd + 1) (( monthStart, monthEnd, monthName month ) :: acc)
+    in
+    buildMonths rangeStart []
+
+
+-- Get list of (yearStart, yearEnd, yearNum) tuples covering the date range
+getYearRanges : Int -> Int -> List ( Int, Int, Int )
+getYearRanges rangeStart rangeEnd =
+    let
+        getYear day =
+            let
+                dateStr = Calculations.daysToDateString day
+                parts = String.split "-" dateStr
+            in
+            parts |> List.head |> Maybe.andThen String.toInt |> Maybe.withDefault 2026
+
+        firstDayOfYear year =
+            dateToDays (String.fromInt year ++ "-01-01")
+
+        buildYears currentDay acc =
+            if currentDay > rangeEnd then
+                List.reverse acc
+            else
+                let
+                    year = getYear currentDay
+                    yearStart = firstDayOfYear year
+                    yearEnd = firstDayOfYear (year + 1) - 1
+                in
+                buildYears (yearEnd + 1) (( yearStart, yearEnd, year ) :: acc)
+    in
+    buildYears rangeStart []
 
 
 drawYAxis : Float -> Svg msg
@@ -512,8 +738,8 @@ drawYAxis yMinK =
     g [] (axisLine :: ticks)
 
 
-drawGridLines : Float -> Svg msg
-drawGridLines yMinK =
+drawGridLines : Float -> Int -> Svg msg
+drawGridLines yMinK endDay =
     let
         yGridValues =
             List.range (ceiling yMinK) (floor yMax)
@@ -537,10 +763,10 @@ drawGridLines yMinK =
                 )
 
         dayLines =
-            List.range startDate (endDate + 1)
+            List.range startDate (endDay + 1)
                 |> List.map (\day ->
                     let
-                        x = dayToX yMinK day
+                        x = dayToX endDay day
                         dayOfWeek = modBy 7 day
                         isSunday = dayOfWeek == 1
                         ( strokeColor, strokeW ) =
@@ -567,6 +793,36 @@ alaskaZone : Time.Zone
 alaskaZone =
     Time.customZone (-9 * 60) []
 
+
+-- Convert Time.Posix to days since 2000-01-01 (our epoch)
+posixToDays : Time.Posix -> Int
+posixToDays time =
+    let
+        year = Time.toYear alaskaZone time
+        month = Time.toMonth alaskaZone time |> monthToInt
+        day = Time.toDay alaskaZone time
+        dateStr = String.fromInt year ++ "-" ++ String.padLeft 2 '0' (String.fromInt month) ++ "-" ++ String.padLeft 2 '0' (String.fromInt day)
+    in
+    dateToDays dateStr
+
+
+monthToInt : Time.Month -> Int
+monthToInt month =
+    case month of
+        Time.Jan -> 1
+        Time.Feb -> 2
+        Time.Mar -> 3
+        Time.Apr -> 4
+        Time.May -> 5
+        Time.Jun -> 6
+        Time.Jul -> 7
+        Time.Aug -> 8
+        Time.Sep -> 9
+        Time.Oct -> 10
+        Time.Nov -> 11
+        Time.Dec -> 12
+
+
 formatMilitaryTime : Time.Zone -> Time.Posix -> String
 formatMilitaryTime zone time =
     let
@@ -581,6 +837,9 @@ formatMilitaryTime zone time =
 viewGraph : List BalanceSnapshot -> List WorkLog -> Time.Posix -> Maybe Weather -> Element msg
 viewGraph snapshots workLogs currentTime maybeWeather =
     let
+        -- Calculate today's day number from currentTime
+        endDay = posixToDays currentTime
+
         dayData = buildDayData snapshots workLogs
 
         creditLimitK =
@@ -596,33 +855,33 @@ viewGraph snapshots workLogs currentTime maybeWeather =
             dayData
                 |> List.map (\d -> ( d.day, d.checking ))
 
-        checkingPolygon = drawStepPolygon yMinK 0 checkingValues colorGreen
+        checkingPolygon = drawStepPolygon yMinK endDay 0 checkingValues colorGreen
 
         creditValues =
             dayData
                 |> List.map (\d -> ( d.day, -d.creditDrawn ))
 
-        creditPolygon = drawStepPolygon yMinK 0 creditValues colorYellow
+        creditPolygon = drawStepPolygon yMinK endDay 0 creditValues colorYellow
 
-        dailyPaySegments = drawDailyPaySegments yMinK dayData
+        dailyPaySegments = drawDailyPaySegments yMinK endDay dayData
 
         earnedValues =
             dayData
                 |> List.map (\d -> ( d.day, d.earnedMoney ))
 
-        earnedLine = drawStepLine yMinK earnedValues colorEarnedLine
+        earnedLine = drawStepLine yMinK endDay earnedValues colorEarnedLine
 
         debtValues =
             dayData
                 |> List.map (\d -> ( d.day, d.personalDebt ))
 
-        debtLine = drawStepLine yMinK debtValues colorRed
+        debtLine = drawStepLine yMinK endDay debtValues colorRed
 
         endLabels =
             case List.reverse dayData of
                 latest :: _ ->
                     let
-                        labelX = dayToX yMinK (latest.day + 1) + 10
+                        labelX = dayToX endDay (latest.day + 1) + 10
                         labelHeight = 20
 
                         rawLabels =
@@ -739,16 +998,16 @@ viewGraph snapshots workLogs currentTime maybeWeather =
                         , SA.fill colorBackground
                         ]
                         []
-                    , drawGridLines yMinK
+                    , drawGridLines yMinK endDay
                     , checkingPolygon
                     , creditPolygon
                     , dailyPaySegments
                     , earnedLine
                     , debtLine
                     , drawYAxis yMinK
-                    , drawXAxis yMinK
+                    , drawXAxis yMinK endDay
                     , endLabels
-                    , drawNotes yMinK dayData
+                    , drawNotes yMinK endDay dayData
                     ]
     in
     el [ inFront clockOverlay ] svgGraph
@@ -768,6 +1027,16 @@ viewMiniGraph snapshots workLogs =
 
         dayData = buildDayData snapshots workLogs
 
+        -- For mini graph, use fixed range based on data or reasonable default
+        miniEndDay =
+            dayData
+                |> List.map .day
+                |> List.maximum
+                |> Maybe.withDefault startDate
+                |> max (startDate + 7)  -- At least show a week
+
+        miniTotalDays = miniEndDay - startDate
+
         creditLimitK =
             snapshots
                 |> List.reverse
@@ -780,7 +1049,7 @@ viewMiniGraph snapshots workLogs =
         miniDayToX day =
             let
                 dayOffset = toFloat (day - startDate)
-                totalDaysFloat = toFloat totalDays
+                totalDaysFloat = toFloat miniTotalDays
             in
             miniMarginLeft + (dayOffset / totalDaysFloat) * miniPlotWidth
 
