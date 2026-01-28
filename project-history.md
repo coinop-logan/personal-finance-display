@@ -279,3 +279,65 @@ Feature development session adding daily pay visualization, note annotations, an
 
 **Build Systems (Makefiles):** Every project should have a Makefile defining the canonical build/deploy process. Always use it—don't "wing it" with ad-hoc commands.
 
+---
+
+## Session 8
+
+**Date:** 2026-01-28
+
+### Summary
+
+Major data model refactoring session introducing multi-job support, payCashed functionality, data migration, and x-axis redesign.
+
+### Key Changes
+
+**Multi-Job Support:**
+- Split single `Entry` type into separate `BalanceSnapshot` and `WorkLog` types
+- `BalanceSnapshot`: date, checking, creditAvailable, creditLimit, personalDebt, note
+- `WorkLog`: date, jobId, hours, payRate, taxRate, payCashed
+- Each job has its own work logs with independent pay rates and tax rates
+- Overtime calculated per-job using Alaska rules (daily >8hrs, weekly >40hrs at 1.5x)
+- Jobs managed via `Job` type with id/name, stored in `FinanceData.jobs`
+
+**PayCashed Functionality:**
+- Added `payCashed` boolean to WorkLog
+- When any work log in the current week has `payCashed=true`, previous week's pay is excluded from incoming pay calculation
+- Checkbox added to work log entry form
+
+**Data Migration:**
+- Created `migrate-data.sh` script to convert old Entry format to new FinanceData format
+- Script is idempotent (safe to run multiple times)
+- Successfully migrated Pi data (23 balance snapshots, 19 work logs)
+
+**Color Picker UX Improvement:**
+- Replaced note color radio buttons with single clickable dot
+- Dot cycles through colors (none → green → blue → red → yellow → none) when clicked
+- Only appears when note text is present
+
+**X-Axis Redesign:**
+- Start date fixed at Jan 4, 2026
+- End date now dynamic: current day + 3 days
+- Day labels split into two lines: weekday name (Mon) and day number (5)
+- Three stacked sections below x-axis: weeks ("week of 1/5"), months (January), years (2026)
+- Alternating background shades for visual distinction
+
+**X-Axis Fixes:**
+- Added SVG clipPath to prevent graph elements drawing outside plot area (left of Y axis)
+- Added final tick mark at right edge of last day
+- Increased marginBottom from 50 to 100 for stacked sections
+
+**Pi Deployment:**
+- Updated CLAUDE.md with Pi SSH info (IP: 216.152.181.254, port 2222, user: pi)
+- Deploy watcher requires manual restart when not running
+
+### Files Modified
+
+- `backend/src/types.rs` - New BalanceSnapshot, WorkLog, Job, FinanceData types
+- `backend/src/main.rs` - Separate endpoints for balance snapshots and work logs
+- `frontend/src/Main.elm` - Split entry forms, payCashed checkbox, color picker UX
+- `frontend/src/Calculations.elm` - Per-job overtime, payCashed logic
+- `frontend/src/Graph.elm` - X-axis redesign, clipping, dynamic date range
+- `frontend/src/Api/Types.elm` - Regenerated
+- `migrate-data.sh` - New migration script
+- `CLAUDE.md` - Pi SSH info
+
