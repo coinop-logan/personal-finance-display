@@ -132,24 +132,64 @@ buildDayData snapshots workLogs =
                 |> List.map (\s -> ( dateToDays s.date, s ))
                 |> List.sortBy Tuple.first
 
-        buildForDay : Int -> BalanceSnapshot -> DayData
-        buildForDay day snapshot =
+        snapshotDays =
+            snapshotsByDay |> List.map Tuple.first
+
+        workLogDays =
+            workLogs
+                |> List.map (\w -> dateToDays w.date)
+                |> List.foldl (\d acc -> if List.member d acc then acc else d :: acc) []
+
+        -- All days that need data points (have snapshot OR work log)
+        allDays =
+            (snapshotDays ++ workLogDays)
+                |> List.foldl (\d acc -> if List.member d acc then acc else d :: acc) []
+                |> List.sort
+
+        -- Find the most recent snapshot on or before a given day
+        findSnapshotForDay : Int -> Maybe BalanceSnapshot
+        findSnapshotForDay day =
+            snapshotsByDay
+                |> List.filter (\( d, _ ) -> d <= day)
+                |> List.reverse
+                |> List.head
+                |> Maybe.map Tuple.second
+
+        buildForDay : Int -> DayData
+        buildForDay day =
             let
                 incomingPay = calculateIncomingPay day workLogs
                 dailyPay = calculateDailyPayForWorkLogs day workLogs
+
+                -- Use snapshot for this day, or carry forward from most recent
+                maybeSnapshot = findSnapshotForDay day
             in
-            { day = day
-            , checking = snapshot.checking / 1000
-            , earnedMoney = (snapshot.checking + incomingPay) / 1000
-            , dailyPayEarned = dailyPay / 1000
-            , creditDrawn = (snapshot.creditLimit - snapshot.creditAvailable) / 1000
-            , personalDebt = snapshot.personalDebt / 1000
-            , creditLimit = snapshot.creditLimit / 1000
-            , note = parseNote snapshot.note
-            }
+            case maybeSnapshot of
+                Just snapshot ->
+                    { day = day
+                    , checking = snapshot.checking / 1000
+                    , earnedMoney = (snapshot.checking + incomingPay) / 1000
+                    , dailyPayEarned = dailyPay / 1000
+                    , creditDrawn = (snapshot.creditLimit - snapshot.creditAvailable) / 1000
+                    , personalDebt = snapshot.personalDebt / 1000
+                    , creditLimit = snapshot.creditLimit / 1000
+                    , note = parseNote snapshot.note
+                    }
+
+                Nothing ->
+                    -- No snapshot yet, use zeros (shouldn't happen in practice)
+                    { day = day
+                    , checking = 0
+                    , earnedMoney = incomingPay / 1000
+                    , dailyPayEarned = dailyPay / 1000
+                    , creditDrawn = 0
+                    , personalDebt = 0
+                    , creditLimit = 0
+                    , note = Nothing
+                    }
     in
-    snapshotsByDay
-        |> List.map (\( day, snapshot ) -> buildForDay day snapshot)
+    allDays
+        |> List.map buildForDay
 
 
 dayToX : Int -> Int -> Float
