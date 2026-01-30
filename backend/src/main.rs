@@ -10,7 +10,7 @@ use std::sync::{Arc, RwLock};
 use std::{fs, path::PathBuf};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
-use types::{ApiResponse, BalanceSnapshot, FinanceData, Job, NewBalanceSnapshot, NewWorkLog, Weather, WorkLog};
+use types::{ApiResponse, BalanceSnapshot, FinanceData, ForecastPeriod, Job, NewBalanceSnapshot, NewWorkLog, Weather, WeatherAlert, WeatherBriefing, WorkLog};
 
 type AppState = Arc<RwLock<AppData>>;
 
@@ -192,6 +192,99 @@ async fn get_weather() -> (StatusCode, Json<Weather>) {
     (StatusCode::OK, Json(Weather { current_f: current, high_f: high, low_f: low }))
 }
 
+/// Fetch NWS weather briefing data (forecast + alerts) for Anchorage
+async fn get_weather_briefing() -> (StatusCode, Json<WeatherBriefing>) {
+    let client = reqwest::Client::new();
+
+    // Anchorage NWS grid coordinates (from api.weather.gov/points/61.21,-149.89)
+    let forecast_url = "https://api.weather.gov/gridpoints/AER/143,236/forecast";
+    let alerts_url = "https://api.weather.gov/alerts/active?zone=AKZ701,AKZ702"; // Anchorage zones
+
+    let empty_briefing = WeatherBriefing {
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        alerts: vec![],
+        forecast_periods: vec![],
+    };
+
+    // Fetch forecast
+    let forecast_resp = match client
+        .get(forecast_url)
+        .header("User-Agent", "personal-finance-display")
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(empty_briefing)),
+    };
+
+    let forecast_json: serde_json::Value = match forecast_resp.json().await {
+        Ok(j) => j,
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(empty_briefing)),
+    };
+
+    // Fetch alerts
+    let alerts_resp = match client
+        .get(alerts_url)
+        .header("User-Agent", "personal-finance-display")
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(empty_briefing)),
+    };
+
+    let alerts_json: serde_json::Value = match alerts_resp.json().await {
+        Ok(j) => j,
+        Err(_) => return (StatusCode::SERVICE_UNAVAILABLE, Json(empty_briefing)),
+    };
+
+    // Parse forecast periods
+    let forecast_periods: Vec<ForecastPeriod> = forecast_json["properties"]["periods"]
+        .as_array()
+        .unwrap_or(&vec![])
+        .iter()
+        .take(1) // Just today
+        .map(|p| ForecastPeriod {
+            name: p["name"].as_str().unwrap_or("").to_string(),
+            temperature: p["temperature"].as_i64().unwrap_or(0) as i32,
+            temperature_unit: p["temperatureUnit"].as_str().unwrap_or("F").to_string(),
+            wind_speed: p["windSpeed"].as_str().unwrap_or("").to_string(),
+            wind_direction: p["windDirection"].as_str().unwrap_or("").to_string(),
+            short_forecast: p["shortForecast"].as_str().unwrap_or("").to_string(),
+            detailed_forecast: p["detailedForecast"].as_str().unwrap_or("").to_string(),
+            precipitation_chance: p["probabilityOfPrecipitation"]["value"].as_i64().map(|v| v as i32),
+            is_daytime: p["isDaytime"].as_bool().unwrap_or(true),
+        })
+        .collect();
+
+    // Parse alerts
+    let alerts: Vec<WeatherAlert> = alerts_json["features"]
+        .as_array()
+        .unwrap_or(&vec![])
+        .iter()
+        .map(|a| {
+            let props = &a["properties"];
+            WeatherAlert {
+                event: props["event"].as_str().unwrap_or("").to_string(),
+                severity: props["severity"].as_str().unwrap_or("").to_string(),
+                headline: props["headline"].as_str().unwrap_or("").to_string(),
+                description: props["description"].as_str().unwrap_or("").to_string(),
+                instruction: props["instruction"].as_str().map(|s| s.to_string()),
+                areas: props["areaDesc"].as_str().unwrap_or("").to_string(),
+                ends: props["ends"].as_str().map(|s| s.to_string()),
+            }
+        })
+        .collect();
+
+    let briefing = WeatherBriefing {
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        alerts,
+        forecast_periods,
+    };
+
+    (StatusCode::OK, Json(briefing))
+}
+
 #[tokio::main]
 async fn main() {
     let port: u16 = std::env::var("PORT")
@@ -209,7 +302,8 @@ async fn main() {
         .route("/worklog/:id", delete(delete_work_log))
         .route("/balance", post(create_balance_snapshot))
         .route("/balance/:id", delete(delete_balance_snapshot))
-        .route("/weather", get(get_weather));
+        .route("/weather", get(get_weather))
+        .route("/weather-briefing", get(get_weather_briefing));
 
     let serve_dir = ServeDir::new("dist")
         .append_index_html_on_directories(true)

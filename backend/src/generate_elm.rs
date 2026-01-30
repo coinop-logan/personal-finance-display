@@ -75,6 +75,21 @@ import Json.Encode as Encode
     add(&mut elm_code, types::Weather::decoder_definition());
     add(&mut elm_code, types::Weather::encoder_definition());
 
+    // ForecastPeriod
+    add(&mut elm_code, types::ForecastPeriod::elm_definition());
+    add(&mut elm_code, types::ForecastPeriod::decoder_definition());
+    add(&mut elm_code, types::ForecastPeriod::encoder_definition());
+
+    // WeatherAlert
+    add(&mut elm_code, types::WeatherAlert::elm_definition());
+    add(&mut elm_code, types::WeatherAlert::decoder_definition());
+    add(&mut elm_code, types::WeatherAlert::encoder_definition());
+
+    // WeatherBriefing
+    add(&mut elm_code, types::WeatherBriefing::elm_definition());
+    add(&mut elm_code, types::WeatherBriefing::decoder_definition());
+    add(&mut elm_code, types::WeatherBriefing::encoder_definition());
+
     let output_dir = Path::new("../frontend/src/Api");
     fs::create_dir_all(output_dir).expect("Failed to create Api directory");
 

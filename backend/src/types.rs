@@ -83,3 +83,40 @@ pub struct Weather {
     pub high_f: i32,
     pub low_f: i32,
 }
+
+/// A single forecast period from NWS
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct ForecastPeriod {
+    pub name: String,
+    pub temperature: i32,
+    pub temperature_unit: String,
+    pub wind_speed: String,
+    pub wind_direction: String,
+    pub short_forecast: String,
+    pub detailed_forecast: String,
+    pub precipitation_chance: Option<i32>,
+    pub is_daytime: bool,
+}
+
+/// A weather alert from NWS
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct WeatherAlert {
+    pub event: String,
+    pub severity: String,
+    pub headline: String,
+    pub description: String,
+    pub instruction: Option<String>,
+    pub areas: String,
+    pub ends: Option<String>,
+}
+
+/// Full weather briefing data for LLM consumption
+#[derive(Debug, Clone, Serialize, Deserialize, Elm, ElmDecode, ElmEncode)]
+#[serde(rename_all = "camelCase")]
+pub struct WeatherBriefing {
+    pub generated_at: String,
+    pub alerts: Vec<WeatherAlert>,
+    pub forecast_periods: Vec<ForecastPeriod>,
+}

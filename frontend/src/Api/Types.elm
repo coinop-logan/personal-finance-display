@@ -229,3 +229,105 @@ weatherEncoder struct =
         ]
 
 
+type alias ForecastPeriod =
+    { name : String
+    , temperature : Int
+    , temperatureUnit : String
+    , windSpeed : String
+    , windDirection : String
+    , shortForecast : String
+    , detailedForecast : String
+    , precipitationChance : Maybe (Int)
+    , isDaytime : Bool
+    }
+
+
+forecastPeriodDecoder : Decode.Decoder ForecastPeriod
+forecastPeriodDecoder =
+    Decode.succeed ForecastPeriod
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "name" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "temperature" (Decode.int)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "temperatureUnit" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "windSpeed" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "windDirection" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "shortForecast" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "detailedForecast" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "precipitationChance" (Decode.nullable (Decode.int))))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "isDaytime" (Decode.bool)))
+
+
+forecastPeriodEncoder : ForecastPeriod -> Encode.Value
+forecastPeriodEncoder struct =
+    Encode.object
+        [ ( "name", (Encode.string) struct.name )
+        , ( "temperature", (Encode.int) struct.temperature )
+        , ( "temperatureUnit", (Encode.string) struct.temperatureUnit )
+        , ( "windSpeed", (Encode.string) struct.windSpeed )
+        , ( "windDirection", (Encode.string) struct.windDirection )
+        , ( "shortForecast", (Encode.string) struct.shortForecast )
+        , ( "detailedForecast", (Encode.string) struct.detailedForecast )
+        , ( "precipitationChance", (Maybe.withDefault Encode.null << Maybe.map (Encode.int)) struct.precipitationChance )
+        , ( "isDaytime", (Encode.bool) struct.isDaytime )
+        ]
+
+
+type alias WeatherAlert =
+    { event : String
+    , severity : String
+    , headline : String
+    , description : String
+    , instruction : Maybe (String)
+    , areas : String
+    , ends : Maybe (String)
+    }
+
+
+weatherAlertDecoder : Decode.Decoder WeatherAlert
+weatherAlertDecoder =
+    Decode.succeed WeatherAlert
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "event" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "severity" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "headline" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "description" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "instruction" (Decode.nullable (Decode.string))))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "areas" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "ends" (Decode.nullable (Decode.string))))
+
+
+weatherAlertEncoder : WeatherAlert -> Encode.Value
+weatherAlertEncoder struct =
+    Encode.object
+        [ ( "event", (Encode.string) struct.event )
+        , ( "severity", (Encode.string) struct.severity )
+        , ( "headline", (Encode.string) struct.headline )
+        , ( "description", (Encode.string) struct.description )
+        , ( "instruction", (Maybe.withDefault Encode.null << Maybe.map (Encode.string)) struct.instruction )
+        , ( "areas", (Encode.string) struct.areas )
+        , ( "ends", (Maybe.withDefault Encode.null << Maybe.map (Encode.string)) struct.ends )
+        ]
+
+
+type alias WeatherBriefing =
+    { generatedAt : String
+    , alerts : List (WeatherAlert)
+    , forecastPeriods : List (ForecastPeriod)
+    }
+
+
+weatherBriefingDecoder : Decode.Decoder WeatherBriefing
+weatherBriefingDecoder =
+    Decode.succeed WeatherBriefing
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "generatedAt" (Decode.string)))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "alerts" (Decode.list (weatherAlertDecoder))))
+        |> Decode.andThen (\x -> Decode.map x (Decode.field "forecastPeriods" (Decode.list (forecastPeriodDecoder))))
+
+
+weatherBriefingEncoder : WeatherBriefing -> Encode.Value
+weatherBriefingEncoder struct =
+    Encode.object
+        [ ( "generatedAt", (Encode.string) struct.generatedAt )
+        , ( "alerts", (Encode.list (weatherAlertEncoder)) struct.alerts )
+        , ( "forecastPeriods", (Encode.list (forecastPeriodEncoder)) struct.forecastPeriods )
+        ]
+
+

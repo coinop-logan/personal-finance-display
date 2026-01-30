@@ -341,3 +341,53 @@ Major data model refactoring session introducing multi-job support, payCashed fu
 - `migrate-data.sh` - New migration script
 - `CLAUDE.md` - Pi SSH info
 
+---
+
+## Session 9
+
+**Date:** 2026-01-29
+
+### Summary
+
+Bug fix and new feature groundwork for AI weather summaries.
+
+### Key Changes
+
+**Graph Bug Fix:**
+- Fixed issue where days with work logs but no balance snapshot weren't showing incoming pay on the graph
+- Modified `buildDayData` in `Graph.elm` to create data points for any day with either a snapshot OR a work log
+- Days without a snapshot now carry forward the most recent snapshot's balance data
+
+**Branch Cleanup:**
+- Merged `multi-job-support` branch into `master` (was already deployed to Pi)
+- Deleted local and remote `multi-job-support` branch
+
+**Weather Summary Feature (In Progress):**
+- Researched LLM providers for daily weather summaries
+- Selected PayPerQ (ppq.ai) for anonymous usage with Bitcoin Lightning payments
+- Implemented NWS data fetching in Rust backend:
+  - New `/api/weather-briefing` endpoint
+  - Fetches today's forecast from NWS API for Anchorage
+  - Fetches active weather alerts for Anchorage zones (AKZ701, AKZ702)
+- Added new types: `ForecastPeriod`, `WeatherAlert`, `WeatherBriefing`
+- Added `chrono` crate for timestamps
+
+**Status Document:**
+- Created `weather-summary-status.md` documenting where the feature stands and next steps
+
+### Files Modified
+
+- `frontend/src/Graph.elm` - Fixed buildDayData to include work-log-only days
+- `backend/src/types.rs` - Added ForecastPeriod, WeatherAlert, WeatherBriefing types
+- `backend/src/main.rs` - Added `/api/weather-briefing` endpoint
+- `backend/src/generate_elm.rs` - Added new types to Elm generation
+- `backend/Cargo.toml` - Added chrono dependency
+- `weather-summary-status.md` - New status document for weather feature
+
+### Next Steps (for future sessions)
+
+1. Set up PayPerQ account and fund with crypto
+2. Add LLM integration to backend (call PayPerQ API with weather data)
+3. Display AI summary on the graph page
+4. Configure scheduling (when to generate daily summary)
+
